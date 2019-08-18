@@ -5,7 +5,7 @@ Suggested and generously supported by Rock Seven Location Technology
 Copyright (C) 2013-2017 Mikal Hart
 All rights reserved.
 
-The latest version of this library is available at http://arduiniana.org.
+Updated by Paul Clark to provide I2C support for the Qwiic Iridium 9603N
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -108,7 +108,7 @@ int IridiumSBD::sleep()
    if (this->reentrant)
       return ISBD_REENTRANT;
 
-   if (this->sleepPin == -1)
+   if (this->useSerial && (this->sleepPin == -1))
       return ISBD_NO_SLEEP_PIN;
 
    this->reentrant = true;
@@ -168,10 +168,17 @@ void IridiumSBD::enableRingAlerts(bool enable) // true to enable SBDRING alerts 
 {
    this->ringAlertsEnabled = enable;
    if (enable)
+   {
       this->ringAsserted = false;
+      if (!this->useSerial) // If we are using I2C, clear the ring indicator flag
+      {
+        clearRingIndicator();
+      }
+   }
 }
 
 bool IridiumSBD::hasRingAsserted()
+// This should only be called occasionally as it will force an I2C transaction each time if we are using I2C
 {
    if (!ringAlertsEnabled)
       return false;
@@ -183,7 +190,18 @@ bool IridiumSBD::hasRingAsserted()
    }
 
    bool ret = ringAsserted;
-   ringAsserted = false;
+   this->ringAsserted = false;
+
+   if (!this->useSerial) // If we are using I2C, check the RI flag now
+   {
+      if (checkRingIndicator()) // If the RI flag is set
+      {
+          ret = true; // Return true
+		  diagprint(F("RI flag seen!\r\n"));
+          clearRingIndicator(); // Clear the flag
+      }
+   }
+   
    return ret;
 }
 
@@ -237,6 +255,114 @@ int IridiumSBD::getFirmwareVersion(char *version, size_t bufferSize)
    return ISBD_SUCCESS;
 }
 
+void IridiumSBD::enableSuperCapCharger(bool enable)
+{
+  // Enable/disable the supercapacitor charger by pulling its SHDN pin high/low
+  check9603pins(); // Update IO_REGISTER
+  if (enable)
+  {
+    IO_REGISTER |= IO_SHDN; // Set the SHDN bit
+  }
+  else
+  {
+    IO_REGISTER &= ~IO_SHDN; // Clear the SHDN bit
+  }
+  set9603pins(IO_REGISTER); // Update the pins
+}
+
+bool IridiumSBD::checkSuperCapCharger()
+{
+  // Check the status of the supercapacitor charger PGOOD pin
+  check9603pins(); // Update IO_REGISTER
+  if (IO_REGISTER &= IO_PGOOD) // If the PGOOD bit is set, return true
+  {
+    return(true);
+  }
+  else
+  {
+    return(false);
+  }
+}
+
+void IridiumSBD::enable9603Npower(bool enable)
+{
+  // Enable/disable power to the 9603N by pulling PWR_EN high/low
+  check9603pins(); // Update IO_REGISTER
+  if (enable)
+  {
+    IO_REGISTER |= IO_PWR_EN; // Set the PWR_EN bit
+  }
+  else
+  {
+    IO_REGISTER &= ~IO_PWR_EN; // Clear the PWR_EN bit
+  }
+  set9603pins(IO_REGISTER); // Update the pins
+}
+
+void IridiumSBD::enable9603(bool enable)
+{
+  // Enable/disable the 9603 by pulling ON_OFF high/low
+  check9603pins(); // Update IO_REGISTER
+  if (enable)
+  {
+    IO_REGISTER |= IO_ON_OFF; // Set the ON_OFF bit
+  }
+  else
+  {
+    IO_REGISTER &= ~IO_ON_OFF; // Clear the ON_OFF bit
+  }
+  set9603pins(IO_REGISTER); // Update the pins
+}
+
+bool IridiumSBD::checkRingIndicator()
+{
+  // Check the status of the 9603 Ring Indicator flag
+  check9603pins(); // Update IO_REGISTER
+  if (IO_REGISTER &= IO_RI) // If the RI bit is set, return true
+  {
+    return(true);
+  }
+  else
+  {
+    return(false);
+  }
+}
+
+void IridiumSBD::clearRingIndicator()
+{
+  // Clear the 9603 RI flag
+  check9603pins(); // Update IO_REGISTER
+  IO_REGISTER &= ~IO_RI; // Clear the RI bit
+  set9603pins(IO_REGISTER); // Update the pins
+  this->ringAsserted = false; // Also clear the ringAsserted flag
+}
+
+bool IridiumSBD::checkNetworkAvailable()
+{
+  // Check the status of the 9603 Network Available pin
+  check9603pins(); // Update IO_REGISTER
+  if (IO_REGISTER &= IO_NA) // If the NA bit is set, return true
+  {
+    return(true);
+  }
+  else
+  {
+    return(false);
+  }
+}
+
+// High-level wrapper for AT+SBDD
+int IridiumSBD::clearBuffers(int buffers)
+{
+   if (this->reentrant)
+      return ISBD_REENTRANT;
+
+   this->reentrant = true;
+   int ret = internalClearBuffers(buffers);
+   this->reentrant = false;
+   return ret;
+}
+
 /*
 Private interface
 */
@@ -247,6 +373,12 @@ int IridiumSBD::internalBegin()
 
    if (!this->asleep)
       return ISBD_ALREADY_AWAKE;
+
+   if (!this->useSerial) // If we are using I2C
+   {
+      check9603pins(); // Update IO_REGISTER with the status of the 9603 pins
+      check9603data(); // Get any waiting 9603 serial data
+   }
 
    power(true); // power on
 
@@ -284,6 +416,10 @@ int IridiumSBD::internalBegin()
    // Enable or disable RING alerts as requested by user
    // By default they are on if a RING pin was supplied on constructor
    diagprint(F("Ring alerts are")); diagprint(ringAlertsEnabled ? F("") : F(" NOT")); diagprint(F(" enabled.\r\n"));
+   
+   if (ringAlertsEnabled) enableRingAlerts(true); // This will clear ringAsserted and the Ring Indicator flag
+   else clearRingIndicator(); // If ring alerts are not enabled, make sure the Ring Indicator flag is clear
+   
    send(ringAlertsEnabled ? F("AT+SBDMTA=1\r") : F("AT+SBDMTA=0\r"));
    if (!waitForATResponse())
       return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
@@ -326,6 +462,7 @@ int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *
       if (txDataSize > ISBD_MAX_MESSAGE_LENGTH)
          return ISBD_MSG_TOO_LONG;
 
+      // send will use serial or wire as appropriate
       send(F("AT+SBDWB="), true, false);
       send(txDataSize);
       send(F("\r"), false);
@@ -333,10 +470,49 @@ int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *
          return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
 
       uint16_t checksum = 0;
-      for (size_t i=0; i<txDataSize; ++i)
+
+      if (this->useSerial)
       {
-         stream.write(txData[i]);
-         checksum += (uint16_t)txData[i];
+         for (size_t i=0; i<txDataSize; ++i)
+         {
+            stream->write(txData[i]);
+            checksum += (uint16_t)txData[i];
+         }
+         stream->write((uint8_t)(checksum >> 8));
+         stream->write((uint8_t)(checksum & 0xFF));
+      }
+      else
+      {
+         //lastCheck = millis(); // Update lastCheck so we enforce a full I2C_POLLING_WAIT
+         // We need to make sure we don't send too much I2C data in one go (otherwise we will overflow the ATtiny841's I2C buffer)
+         size_t bytes_to_send = txDataSize; // Send this many bytes in total
+         size_t i=0;
+         size_t nexti;
+         while (bytes_to_send > (TINY_I2C_BUFFER_LENGTH - 3)) // If there are too many bytes to send all in one go
+         {
+            nexti = i + (TINY_I2C_BUFFER_LENGTH - 3);
+            wireport->beginTransmission((uint8_t)deviceaddress);
+            wireport->write(DATA_REG); // Point to the serial data 'register'
+            for (; i<nexti; ++i)
+            {
+               wireport->write(txData[i]); // Write each byte
+               checksum += (uint16_t)txData[i];
+            }
+            bytes_to_send = bytes_to_send - (TINY_I2C_BUFFER_LENGTH - 3); // Decrease the number of bytes still to send
+            wireport->endTransmission(); // Send data and release the bus (the 841 (WireS) doesn't like it if the Master holds the bus!)
+         }
+         // There are now <= (TINY_I2C_BUFFER_LENGTH - 3) bytes left to send, so send them and then release the bus
+         wireport->beginTransmission((uint8_t)deviceaddress);
+         wireport->write(DATA_REG); // Point to the 'serial register'
+         for (; i<txDataSize; ++i)
+         {
+            wireport->write(txData[i]);
+            checksum += (uint16_t)txData[i];
+         }
+         wireport->write((uint8_t)(checksum >> 8));
+         wireport->write((uint8_t)(checksum & 0xFF));
+         if (wireport->endTransmission() != 0) //Send data and release bus
+            diagprint(F("I2C write was not successful!\r\n"));
       }
 
       consoleprint(F("["));
@@ -346,9 +522,6 @@ int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *
       diagprint(F("Checksum:"));
       diagprint(checksum);
       diagprint(F("\r\n"));
-
-      stream.write(checksum >> 8);
-      stream.write(checksum & 0xFF);
 
       if (!waitForATResponse(NULL, 0, NULL, "0\r\n\r\nOK\r\n"))
          return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
@@ -373,7 +546,7 @@ int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *
          send(F("AT+SBDWT\r"));
          if (!waitForATResponse(NULL, 0, NULL, "READY\r\n"))
             return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
-         send(txTxtMessage);
+         sendlong(txTxtMessage);
          send("\r");
          if (!waitForATResponse(NULL, 0, NULL, "0\r\n\r\nOK\r\n"))
             return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
@@ -381,7 +554,7 @@ int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *
 #else
       send(F("AT+SBDWT="), true, false);
       if (txTxtMessage != NULL) // It's ok to have a NULL txtTxtMessage if the transaction is RX only
-         send(txTxtMessage);
+         sendlong(txTxtMessage);
       send(F("\r"), false);
       if (!waitForATResponse())
          return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
@@ -603,15 +776,21 @@ bool IridiumSBD::waitForATResponse(char *response, int responseSize, const char 
          {
             matchTerminatorPos = c == terminator[0] ? 1 : 0;
          }
-      } // while (stream.available() > 0)
+      } // while (filteredavailable() > 0)
    } // timer loop
    return false;
 }
 
 bool IridiumSBD::cancelled()
 {
-   if (ringPin != -1 && digitalRead(ringPin) == LOW) // Active low per guide
-      ringAsserted = true;
+   if (this->useSerial)
+   {
+      if ((ringPin != -1) && digitalRead(ringPin) == LOW)
+	  {
+         ringAsserted = true;
+		 //diagprint(F("ringPin seen!\r\n"));
+	  }
+   }
 
    if (ISBDCallback != NULL)
       return !ISBDCallback();
@@ -646,20 +825,35 @@ int IridiumSBD::doSBDRB(uint8_t *rxBuffer, size_t *prxBufferSize)
    if (!waitForATResponse(NULL, 0, NULL, "AT+SBDRB\r")) // waits for its own echo
       return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
 
+   if(!this->useSerial) check9603data(); // Check for any 9603 serial data
+
    // Time to read the binary data: size[2], body[size], checksum[2]
    unsigned long start = millis();
    while (millis() - start < 1000UL * atTimeout)
    {
+      if(!this->useSerial) check9603data(); // Keep checking for new 9603 serial data
       if (cancelled())
          return ISBD_CANCELLED;
-      if (stream.available() >= 2)
+      if (this->useSerial && (stream->available() >= 2))
+         break;
+      if ((!this->useSerial) && (i2cSerAvailable() >= 2))
          break;
    }
 
-   if (stream.available() < 2)
+   if (this->useSerial && (stream->available() < 2))
+      return ISBD_SENDRECEIVE_TIMEOUT;
+   if ((!this->useSerial) && (i2cSerAvailable() < 2))
       return ISBD_SENDRECEIVE_TIMEOUT;
 
-   uint16_t size = 256 * stream.read() + stream.read();
+   uint16_t size;
+   if (this->useSerial)
+   {
+      size = 256 * stream->read() + stream->read();
+   }
+   else
+   {
+      size = 256 * i2cSerRead() + i2cSerRead();
+   }
    consoleprint(F("[Binary size:"));
    consoleprint(size);
    consoleprint(F("]"));
@@ -669,9 +863,19 @@ int IridiumSBD::doSBDRB(uint8_t *rxBuffer, size_t *prxBufferSize)
       if (cancelled())
          return ISBD_CANCELLED;
 
-      if (stream.available())
+      if(!this->useSerial) check9603data(); // Check for new 9603 serial data
+
+      if ((this->useSerial && (stream->available())) || ((!this->useSerial) && i2cSerAvailable()))
       {
-         uint8_t c = stream.read();
+         uint8_t c;
+         if (this->useSerial)
+         {
+            c = stream->read();
+         }
+         else
+         {
+            c = i2cSerRead();
+         }
          bytesRead++;
          if (rxBuffer && prxBufferSize)
          {
@@ -693,16 +897,29 @@ int IridiumSBD::doSBDRB(uint8_t *rxBuffer, size_t *prxBufferSize)
 
    while (millis() - start < 1000UL * atTimeout)
    {
+      if(!this->useSerial) check9603data(); // Check for new 9603 serial data
       if (cancelled())
          return ISBD_CANCELLED;
-      if (stream.available() >= 2)
+      if (this->useSerial && (stream->available() >= 2))
+         break;
+      if ((!this->useSerial) && (i2cSerAvailable() >= 2))
          break;
    }
 
-   if (stream.available() < 2)
+   if (this->useSerial && (stream->available() < 2))
+      return ISBD_SENDRECEIVE_TIMEOUT;
+   if ((!this->useSerial) && (i2cSerAvailable() < 2))
       return ISBD_SENDRECEIVE_TIMEOUT;
 
-   uint16_t checksum = 256 * stream.read() + stream.read();
+   uint16_t checksum;
+   if (this->useSerial)
+   {
+      checksum = 256 * stream->read() + stream->read();
+   }
+   else
+   {
+      checksum = 256 * i2cSerRead() + i2cSerRead();
+   }
    consoleprint(F("[csum:"));
    consoleprint(checksum);
    consoleprint(F("]"));
@@ -722,15 +939,29 @@ void IridiumSBD::power(bool on)
 {
    this->asleep = !on;
 
-   if (this->sleepPin == -1)
-      return;
-
-   pinMode(this->sleepPin, OUTPUT);
+   if (this->useSerial)
+   {
+      if (this->sleepPin == -1)
+      {
+         return;
+      }
+      else
+      {
+          pinMode(this->sleepPin, OUTPUT); // Make the sleep pin an output
+      }
+   }
 
    if (on)
    {
       diagprint(F("Powering on modem...\r\n"));
-      digitalWrite(this->sleepPin, HIGH); // HIGH = awake
+      if (this->useSerial)
+      {
+         digitalWrite(this->sleepPin, HIGH); // HIGH = awake
+      }
+      else
+      {
+         enable9603(true);
+      }
       lastPowerOnTime = millis();
    }
 
@@ -743,7 +974,14 @@ void IridiumSBD::power(bool on)
          delay(2000UL - elapsed);
 
       diagprint(F("Powering off modem...\r\n"));
-      digitalWrite(this->sleepPin, LOW); // LOW = asleep
+      if (this->useSerial)
+      {
+         digitalWrite(this->sleepPin, LOW); // LOW = asleep
+      }
+      else
+      {
+         enable9603(false);
+      }
    }
 }
 
@@ -754,7 +992,19 @@ void IridiumSBD::send(FlashString str, bool beginLine, bool endLine)
    consoleprint(str);
    if (endLine)
       consoleprint(F("\r\n"));
-   stream.print(str);
+   if (this->useSerial)
+   {
+      stream->print(str);
+   }
+   else
+   {
+      //lastCheck = millis(); // Update lastCheck so we enforce a full I2C_POLLING_WAIT
+      wireport->beginTransmission((uint8_t)deviceaddress);
+      wireport->write(DATA_REG); // Point to the 'serial register'
+      wireport->print(str);
+      if (wireport->endTransmission() != 0) //Release bus
+         diagprint(F("I2C write was not successful!\r\n"));
+   }
 }
 
 void IridiumSBD::send(const char *str)
@@ -762,13 +1012,80 @@ void IridiumSBD::send(const char *str)
    consoleprint(F(">> "));
    consoleprint(str);
    consoleprint(F("\r\n"));
-   stream.print(str);
+   if (this->useSerial)
+   {
+      stream->print(str);
+   }
+   else
+   {
+      //lastCheck = millis(); // Update lastCheck so we enforce a full I2C_POLLING_WAIT
+      wireport->beginTransmission((uint8_t)deviceaddress);
+      wireport->write(DATA_REG); // Point to the 'serial register'
+      wireport->print(str);
+      if (wireport->endTransmission() != 0) //Release bus
+         diagprint(F("I2C write was not successful!\r\n"));
+   }
+}
+
+void IridiumSBD::sendlong(const char *str)
+// Send a long string that might need to be broken up for the I2C port
+{
+   consoleprint(F(">> "));
+   consoleprint(str);
+   consoleprint(F("\r\n"));
+
+   if (this->useSerial)
+   {
+      stream->print(str); // If we are using serial then send it and don't worry about the long length
+   }
+   else
+   {
+      //lastCheck = millis(); // Update lastCheck so we enforce a full I2C_POLLING_WAIT
+      // We need to make sure we don't send too much I2C data in one go (otherwise we will overflow the buffer)
+      size_t bytes_to_send = strlen(str); // Send this many bytes in total
+      size_t txDataSize = bytes_to_send;
+      size_t i=0;
+      size_t nexti;
+      while (bytes_to_send > (TINY_I2C_BUFFER_LENGTH - 1)) // If there are too many bytes to send all in one go
+      {
+         nexti = i + (TINY_I2C_BUFFER_LENGTH - 1);
+         wireport->beginTransmission((uint8_t)deviceaddress);
+         wireport->write(DATA_REG); // Point to the 'serial register'
+         for (; i<nexti; ++i)
+         {
+            wireport->write(str[i]); // Write each byte
+         }
+         bytes_to_send = bytes_to_send - (TINY_I2C_BUFFER_LENGTH - 1); // Decrease the number of bytes still to send
+         wireport->endTransmission(); // Send data and release the bus (the 841 (WireS) doesn't like it if the Master holds the bus!)
+      }
+      // There are now <= (TINY_I2C_BUFFER_LENGTH - 1) bytes left to send, so send them and then release the bus
+      wireport->beginTransmission((uint8_t)deviceaddress);
+      wireport->write(DATA_REG); // Point to the 'serial register'
+      for (; i<txDataSize; ++i)
+      {
+         wireport->write(str[i]);
+      }
+      if (wireport->endTransmission() != 0) //Send data and release bus
+         diagprint(F("I2C write was not successful!\r\n"));
+   }
 }
 
 void IridiumSBD::send(uint16_t n)
 {
    consoleprint(n);
-   stream.print(n);
+   if (this->useSerial)
+   {
+      stream->print(n);
+   }
+   else
+   {
+      //lastCheck = millis(); // Update lastCheck so we enforce a full I2C_POLLING_WAIT
+      wireport->beginTransmission((uint8_t)deviceaddress);
+      wireport->write(DATA_REG); // Point to the 'serial register'
+      wireport->print(n);
+      if (wireport->endTransmission() != 0) //Send data and release bus
+         diagprint(F("I2C write was not successful!\r\n"));
+   }
 }
 
 void IridiumSBD::diagprint(FlashString str)
@@ -836,9 +1153,18 @@ void IridiumSBD::SBDRINGSeen()
 // nextChar.
 void IridiumSBD::filterSBDRING()
 {
-   while (stream.available() > 0 && nextChar == -1)
+   if(!this->useSerial) check9603data(); // Check for new 9603 serial data
+   while (((this->useSerial && (stream->available() > 0)) || ((!this->useSerial) && (i2cSerAvailable() > 0))) && nextChar == -1)
    {
-      char c = stream.read();
+      char c;
+      if (this->useSerial)
+      {
+         c = stream->read();
+      }
+      else
+      {
+         c = i2cSerRead();
+      }
       consoleprint(c);
       if (*head != 0 && c == *head)
       {
@@ -851,10 +1177,12 @@ void IridiumSBD::filterSBDRING()
          else
          {
             // Delay no more than 10 milliseconds waiting for next char in SBDRING
-            for (unsigned long start = millis(); stream.available() == 0 && millis() - start < FILTERTIMEOUT; );
+            for (unsigned long start = millis(); ((this->useSerial && (stream->available() == 0)) || ((!this->useSerial) && (i2cSerAvailable() == 0))) && millis() - start < FILTERTIMEOUT; );
+
+            if(!this->useSerial) check9603data(); // Check for new 9603 serial data
 
             // If there isn't one, assume this ISN'T an unsolicited SBDRING
-            if (stream.available() == 0) // pop the character back into nextChar
+            if ((this->useSerial && (stream->available() == 0)) || ((!this->useSerial) && (i2cSerAvailable() == 0))) // pop the character back into nextChar
             {
                --head;
                nextChar = c;
@@ -897,6 +1225,142 @@ int IridiumSBD::filteredread()
       return c;
    }
 
-
    return -1;
+}
+
+//Checks the number of available serial bytes
+//Reads the available serial bytes (if any) and stores them in i2c_ser_buffer
+void IridiumSBD::check9603data()
+{
+  if (millis() - lastCheck >= I2C_POLLING_WAIT_MS)
+  {
+    //Check how many serial bytes are waiting to be read
+    uint16_t bytesAvailable = 0;
+    wireport->beginTransmission((uint8_t)deviceaddress); // Talk to the I2C device
+    wireport->write(LEN_REG); // Point to the serial buffer length
+    wireport->endTransmission(); // Send data and release the bus (the 841 (WireS) doesn't like it if the Master holds the bus!)
+    wireport->requestFrom((uint8_t)deviceaddress, 2); // Request two bytes
+    if (wireport->available() >= 2)
+    {
+      uint8_t msb = wireport->read();
+      uint8_t lsb = wireport->read();
+      bytesAvailable = (((uint16_t)msb) << 8) | lsb;
+    }
+    while (wireport->available())
+    {
+      wireport->read(); // Mop up any unexpected bytes
+    }
+
+    //Now read the serial bytes (if any)
+    if (bytesAvailable > 0)
+    {
+      // Request the bytes
+      // Poke them into the i2c_serial buffer
+      // Release the bus afterwards
+      wireport->beginTransmission((uint8_t)deviceaddress); // Talk to the I2C device
+      wireport->write(DATA_REG); // Point to the serial buffer
+      wireport->endTransmission(); // Send data and release the bus (the 841 (WireS) doesn't like it if the Master holds the bus!)
+      while (bytesAvailable > SER_PACKET_SIZE) // If there are _more_ than SER_PACKET_SIZE bytes to be read
+      {
+        wireport->requestFrom((uint8_t)deviceaddress, SER_PACKET_SIZE, false); // Request SER_PACKET_SIZE bytes, don't release the bus
+        while (wireport->available())
+        {
+          i2cSerPoke(wireport->read()); // Read and store each byte
+        }
+        bytesAvailable -= SER_PACKET_SIZE; // Decrease the number of bytes available by SER_PACKET_SIZE
+      }
+      wireport->requestFrom((uint8_t)deviceaddress, bytesAvailable); // Request remaining bytes, release the bus
+      while (wireport->available())
+      {
+        i2cSerPoke(wireport->read()); // Read and store each byte
+      }
+    }
+        
+    lastCheck = millis(); //Put off checking to avoid excessive I2C bus traffic
+  }
+}
+
+//Reads the IO pins and update IO_REGISTER
+void IridiumSBD::check9603pins()
+{
+  //Read the 'IO_REGISTER'
+  wireport->beginTransmission((uint8_t)deviceaddress); // Talk to the I2C device
+  wireport->write(IO_REG); // Point to the 'IO register'
+  wireport->endTransmission(); // Send data and release the bus (the 841 (WireS) doesn't like it if the Master holds the bus!)
+  wireport->requestFrom((uint8_t)deviceaddress, 1); // Request one byte from the IO register
+  if (wireport->available())
+  {
+    IO_REGISTER = wireport->read(); // Read the IO register
+  }
+  while (wireport->available())
+  {
+    wireport->read(); // Mop up any unexpected bytes (hopefully redundant!?)
+  }
+}
+
+//Set the IO pins
+void IridiumSBD::set9603pins(uint8_t pins)
+{
+  //Write to the 'IO_REGISTER'
+  wireport->beginTransmission((uint8_t)deviceaddress); // Talk to the I2C device
+  wireport->write(IO_REG); // Point to the 'IO register'
+  wireport->write(pins); // Set the pins
+  wireport->endTransmission(); // Send data and surrender the bus
+}
+
+// I2C_SER functions
+int IridiumSBD::i2cSerAvailable()
+{
+  return (i2c_ser_buffer_tail + I2C_SER_MAX_BUFF - i2c_ser_buffer_head) % I2C_SER_MAX_BUFF;
+}
+
+int IridiumSBD::i2cSerRead()
+{
+  // Empty buffer?
+  if (i2c_ser_buffer_head == i2c_ser_buffer_tail)
+    return -1;
+
+  // Read from "head"
+  uint8_t d = i2c_ser_buffer[i2c_ser_buffer_head]; // grab next byte
+  i2c_ser_buffer_head = (i2c_ser_buffer_head + 1) % I2C_SER_MAX_BUFF; // update head
+  return d;
+}
+
+void IridiumSBD::i2cSerPoke(char serChar)
+{
+  // Calculate the new value for the tail
+  int next = (i2c_ser_buffer_tail + 1) % I2C_SER_MAX_BUFF;
+  // If the buffer is not full (i.e. we are not about to overwrite the head byte)
+  // If the buffer is full, the byte is lost
+  if (next != i2c_ser_buffer_head)
+  {
+    // save new data in buffer: tail points to where byte goes
+    i2c_ser_buffer[i2c_ser_buffer_tail] = serChar; // save new byte
+    i2c_ser_buffer_tail = next;
+  }
+}
+
+int IridiumSBD::internalClearBuffers(int buffers)
+// Clear the MO/MT/Both buffers
+// Defaults to clearing the MO buffer to avoid resending old messages
+{
+   if (this->asleep)
+      return ISBD_IS_ASLEEP;
+
+   if (buffers == ISBD_CLEAR_MT) // Clear MT buffer
+   {
+      send(F("AT+SBDD1\r"));
+   }
+   else if (buffers == ISBD_CLEAR_BOTH) // Clear both buffers
+   {
+      send(F("AT+SBDD2\r"));
+   }
+   else // Clear MO buffer
+   {
+      send(F("AT+SBDD0\r"));
+   }
+   if (!waitForATResponse())
+      return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
+
+   return ISBD_SUCCESS;
 }

@@ -5,7 +5,7 @@ Suggested and generously supported by Rock Seven Location Technology
 Copyright (C) 2013-2017 Mikal Hart
 All rights reserved.
 
-The latest version of this library is available at http://arduiniana.org.
+Updated by Paul Clark to provide I2C support for the Qwiic Iridium 9603N
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -24,9 +24,43 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include <WString.h> // for FlashString
 #include <Stream.h> // for Stream
-#include "Arduino.h"
 
-#define ISBD_LIBRARY_REVISION           2
+#if (ARDUINO >= 100)
+#include "Arduino.h"
+#else
+#include "WProgram.h"
+#endif
+
+#include <Wire.h>
+
+//Platform specific configurations
+
+//Define the size of the I2C buffer based on the platform the user has
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
+
+//I2C_BUFFER_LENGTH is defined in Wire.H
+#define I2C_BUFFER_LENGTH BUFFER_LENGTH
+
+#elif defined(__SAMD21G18A__)
+
+//SAMD21 uses RingBuffer.h
+#define I2C_BUFFER_LENGTH SERIAL_BUFFER_SIZE
+
+//#elif __MK20DX256__
+//Teensy
+
+#endif
+
+#ifndef I2C_BUFFER_LENGTH
+
+//The catch-all default is 32
+#define I2C_BUFFER_LENGTH 32
+
+#endif
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+#define ISBD_LIBRARY_REVISION           3 // Changed by Paul to reflect substantial update for I2C functions
 #define ISBD_DEFAULT_AT_TIMEOUT         30
 #define ISBD_MSSTM_RETRY_INTERVAL       10
 #define ISBD_DEFAULT_SBDIX_INTERVAL     10
@@ -50,6 +84,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define ISBD_NO_SLEEP_PIN        11
 #define ISBD_NO_NETWORK          12
 #define ISBD_MSG_TOO_LONG        13
+
+#define ISBD_CLEAR_MO			0
+#define ISBD_CLEAR_MT			1
+#define ISBD_CLEAR_BOTH			2
 
 typedef const __FlashStringHelper *FlashString;
 
@@ -76,37 +114,91 @@ public:
    void useMSSTMWorkaround(bool useMSSTMWorkAround); // true to use workaround from Iridium Alert 5/7/13
    void enableRingAlerts(bool enable);
 
-   IridiumSBD(Stream &str, int sleepPinNo = -1, int ringPinNo = -1) :
-      stream(str),
-      sbdixInterval(ISBD_USB_SBDIX_INTERVAL),
-      atTimeout(ISBD_DEFAULT_AT_TIMEOUT),
-      sendReceiveTimeout(ISBD_DEFAULT_SENDRECEIVE_TIME),
-      remainingMessages(-1),
-      asleep(true),
-      reentrant(false),
-      sleepPin(sleepPinNo),
-      ringPin(ringPinNo),
-      msstmWorkaroundRequested(true),
-      ringAlertsEnabled(ringPinNo != -1),
-      ringAsserted(false),
-      lastPowerOnTime(0UL),
-      head(SBDRING),
-      tail(SBDRING),
-      nextChar(-1)
+   void enableSuperCapCharger(bool enable);
+   bool checkSuperCapCharger();
+   void enable9603Npower(bool enable);
+   bool checkRingIndicator();
+   void clearRingIndicator();
+   bool checkNetworkAvailable();
+   void enable9603(bool enable);
+
+   int clearBuffers(int buffers = ISBD_CLEAR_MO);
+
+   IridiumSBD(Stream &str, int sleepPinNo = -1, int ringPinNo = -1)
    {
+      useSerial = true;
+      stream = &str;
+      sbdixInterval = ISBD_USB_SBDIX_INTERVAL;
+      atTimeout = ISBD_DEFAULT_AT_TIMEOUT;
+      sendReceiveTimeout = ISBD_DEFAULT_SENDRECEIVE_TIME;
+      remainingMessages = -1;
+      asleep = true;
+      reentrant = false;
+      sleepPin = sleepPinNo;
+      ringPin = ringPinNo;
+      msstmWorkaroundRequested = true;
+      ringAlertsEnabled = {ringPinNo != -1};
+      ringAsserted = false;
+      lastPowerOnTime = 0UL;
+      head = SBDRING;
+      tail = SBDRING;
+      nextChar = -1;
+      i2c_ser_buffer_tail = 0;
+      i2c_ser_buffer_head = 0;
       if (sleepPin != -1)
          pinMode(sleepPin, OUTPUT);
       if (ringPin != -1)
          pinMode(ringPin, INPUT);
    }
 
+   IridiumSBD(TwoWire &wirePort = Wire, uint8_t deviceAddress = 0x63)
+   {
+      useSerial = false;
+      wireport = &wirePort;
+      deviceaddress = deviceAddress;
+      sbdixInterval = ISBD_USB_SBDIX_INTERVAL;
+      atTimeout = ISBD_DEFAULT_AT_TIMEOUT;
+      sendReceiveTimeout = ISBD_DEFAULT_SENDRECEIVE_TIME;
+      remainingMessages = -1;
+      asleep = true;
+      reentrant = false;
+      sleepPin = -1;
+      ringPin = -1;
+      msstmWorkaroundRequested = false;
+      ringAlertsEnabled = true;
+      ringAsserted = false;
+      lastPowerOnTime = 0UL;
+      head = SBDRING;
+      tail = SBDRING;
+      nextChar = -1;
+      i2c_ser_buffer_tail = 0;
+      i2c_ser_buffer_head = 0;
+   }
+
 private:
-   Stream &stream; // Communicating with the Iridium
+   Stream * stream; // Communicating with the Iridium
+   TwoWire  * wireport;
+   uint8_t deviceaddress;
+   bool useSerial;
+
+   //Create the I2C_Serial buffer
+   #define I2C_SER_MAX_BUFF 64 // RX buffer size
+   char i2c_ser_buffer[I2C_SER_MAX_BUFF];
+   int i2c_ser_buffer_tail;
+   int i2c_ser_buffer_head;
+
+   //Qwiic Iridium ATtiny841 I2C buffer length
+   #define TINY_I2C_BUFFER_LENGTH 32
+
+   //Define the maximum number of serial bytes to be requested from the ATtiny841
+   #define SER_PACKET_SIZE 8
 
    // Timings
    int sbdixInterval;
    int atTimeout;
    int sendReceiveTimeout;
+   unsigned long lastCheck = 0; // The time in millis when the I2C bus was last checked (limits I2C traffic)
+   const uint8_t I2C_POLLING_WAIT_MS = 5; //Limit checking of new characters to every 5 ms (roughly 10 chars at 19200 baud)
 
    // State variables  
    int remainingMessages;
@@ -135,6 +227,7 @@ private:
 
    void send(FlashString str, bool beginLine = true, bool endLine = true);
    void send(const char *str);
+   void sendlong(const char *str);
    void send(uint16_t n);
 
    bool cancelled(); // call ISBDCallback and see if client cancelled the operation
@@ -157,9 +250,42 @@ private:
    void filterSBDRING();
    int filteredavailable();
    int filteredread();
+
+   // I2C_SER buffer functions
+   int i2cSerAvailable();
+   int i2cSerRead();
+   void i2cSerPoke(char serChar);
+
+   // Read serial data from the 9603
+   void check9603data();
+
+   // Read the state of the Iridium pins and update IO_REGISTER
+   void check9603pins();
+   // Set the Iridium pins
+   void set9603pins(uint8_t pins);
+
+   //Define the I2C 'registers'
+   #define IO_REG  0x10 // Read/write to/from the I/O pins
+   #define LEN_REG 0xFD // The serial length regsiter: 2 bytes (MSB, LSB) indicating how many serial characters are available to be read
+   #define DATA_REG 0xFF // The serial data register: used to read and write serial data from/to the 9603N
+
+   //Create the IO 'register'
+   //A '1' in any of the bits indicates that the pin is ON (not necessarily that it is HIGH!)
+   byte IO_REGISTER;
+   
+   //These are the bit definitions for the IO 'register'
+   const uint8_t IO_SHDN   = (1 << 0); // LTC3225 !SHDN : Read / Write
+   const uint8_t IO_PWR_EN = (1 << 1); // 9603N power enable via the P-FET : Read / Write
+   const uint8_t IO_ON_OFF = (1 << 2); // 9603N ON_OFF pin : Read / Write
+   const uint8_t IO_RI     = (1 << 3); // 9603N Ring Indicator _flag_ : Read / Write (Set if RI has been seen, cleared by writing a 0 to this bit)
+   const uint8_t IO_NA     = (1 << 4); // 9603N Network Available : Read only
+   const uint8_t IO_PGOOD  = (1 << 5); // LTC3225 PGOOD : Read only
+
+   // Clear the MO/MT/Both buffers
+   int internalClearBuffers(int buffers = 0);
+
 };
 
 extern bool ISBDCallback() __attribute__((weak));
 extern void ISBDConsoleCallback(IridiumSBD *device, char c) __attribute__((weak));
 extern void ISBDDiagsCallback(IridiumSBD *device, char c) __attribute__((weak));
-
