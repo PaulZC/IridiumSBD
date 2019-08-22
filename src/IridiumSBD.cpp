@@ -418,7 +418,9 @@ int IridiumSBD::internalBegin()
    diagprint(F("Ring alerts are")); diagprint(ringAlertsEnabled ? F("") : F(" NOT")); diagprint(F(" enabled.\r\n"));
    
    if (ringAlertsEnabled) enableRingAlerts(true); // This will clear ringAsserted and the Ring Indicator flag
-   else clearRingIndicator(); // If ring alerts are not enabled, make sure the Ring Indicator flag is clear
+   else {
+	   if (!this->useSerial) clearRingIndicator(); // If ring alerts are not enabled and using I2C, make sure the Ring Indicator flag is clear
+   }
    
    send(ringAlertsEnabled ? F("AT+SBDMTA=1\r") : F("AT+SBDMTA=0\r"));
    if (!waitForATResponse())
