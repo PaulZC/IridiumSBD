@@ -15,7 +15,7 @@ text message; put the 9603N to sleep; and disable the supercapacitor charger
 - **SendReceive_I2C** demonstrates bidirectional message transmission
 - **Ring_I2C** demonstrates how to check if the 9603N has seen a Ring Indication and download the new Mobile Terminated message if it has
 - **Beacon_I2C** demonstrates how to interface the Qwiic Iridium 9603N with (e.g.) a [SparkFun SAM-M8Q breakout](https://www.sparkfun.com/products/15210)
-to form an I2C GPS + Iridium beacon or tracker
+or [ZOE-M8Q breakout](https://www.sparkfun.com/products/15193) to form an I2C GPS + Iridium beacon or tracker
 
 Also included is a new function called _clearBuffers_ which can be used to clear the Mobile Originated or Mobile Terminated message buffers. This allows you to
 overcome the 'feature' (bug?) where the 9603N will automatically re-transmit the last MO message when checking (only) for new MT messages.

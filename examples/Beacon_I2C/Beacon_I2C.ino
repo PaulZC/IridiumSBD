@@ -15,11 +15,11 @@
  * 
  * The sketch assumes an Arduino Mega or other Arduino-like device with
  * a serial console and a hardware I2C (Wire) port. It assumes
- * the SparkFun Qwiic Iridium 9603N and (e.g.) SAM-M8Q Breakout are connected via I2C.
+ * the SparkFun Qwiic Iridium 9603N and (e.g.) SAM-M8Q or ZOE-M8Q Breakout are connected via I2C.
  */
 
 #define IridiumWire Wire
-#define DIAGNOSTICS true // Change this to disable diagnostics
+#define DIAGNOSTICS false // Change this to enable diagnostics
 
 // Time between transmissions (seconds)
 #define BEACON_INTERVAL 600
@@ -30,7 +30,7 @@ IridiumSBD modem(IridiumWire);
 // Declare the GPS object
 SFE_UBLOX_GPS myGPS;
 
-static const int ledPin = 13;
+static const int ledPin = LED_BUILTIN;
 
 void setup()
 {
@@ -126,10 +126,14 @@ void loop()
   Serial.println("Beginning to talk to the Qwiic Iridium 9603N...");
 
   // Construct the message in the format: lat,lon,alt
-  // (sprintf doesn't like floats so convert to decimals)
+  char lat_str[15];
+  dtostrf(latitude,8,6,lat_str);
+  char lon_str[15];
+  dtostrf(longitude,8,6,lon_str);
+  char alt_str[15];
+  dtostrf(altitude,4,2,alt_str);
   char outBuffer[60]; // Always try to keep message short
-  sprintf(outBuffer, "%d.%06d,%d.%06d,%d.%02d", (int)latitude, abs((int)(latitude*1000000)%1000000),
-    (int)longitude, abs((int)(longitude*1000000)%1000000), (int)altitude, abs((int)(altitude*100)%100));
+  sprintf(outBuffer, "%s,%s,%s", lat_str, lon_str, alt_str);
 
   Serial.print("Transmitting message '");
   Serial.print(outBuffer);
@@ -140,6 +144,10 @@ void loop()
   {
     Serial.print("Transmission failed with error code ");
     Serial.println(err);
+  }
+  else
+  {
+    Serial.println("Message sent!");
   }
 
   // Sleep
@@ -169,14 +177,16 @@ bool ISBDCallback()
   return true;
 }
 
-#if DIAGNOSTICS
 void ISBDConsoleCallback(IridiumSBD *device, char c)
 {
+#if DIAGNOSTICS
   Serial.write(c);
+#endif
 }
 
 void ISBDDiagsCallback(IridiumSBD *device, char c)
 {
+#if DIAGNOSTICS
   Serial.write(c);
-}
 #endif
+}

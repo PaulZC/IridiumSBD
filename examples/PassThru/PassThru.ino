@@ -59,14 +59,16 @@ void loop()
     Serial.write(IridiumSerial.read());
 }
 
-#if DIAGNOSTICS
 void ISBDConsoleCallback(IridiumSBD *device, char c)
 {
+#if DIAGNOSTICS
   Serial.write(c);
+#endif
 }
 
 void ISBDDiagsCallback(IridiumSBD *device, char c)
 {
+#if DIAGNOSTICS
   Serial.write(c);
-}
 #endif
+}
