@@ -25,6 +25,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <WString.h> // for FlashString
 #include <Stream.h> // for Stream
 
+#ifndef IRIDIUM_SBD // https://github.com/mikalhart/IridiumSBD/pull/14
+#define IRIDIUM_SBD
+
 #if (ARDUINO >= 100)
 #include "Arduino.h"
 #else
@@ -123,6 +126,7 @@ public:
    void enable9603(bool enable);
 
    int clearBuffers(int buffers = ISBD_CLEAR_MO);
+   int getIMEI(char *IMEI, size_t bufferSize);
 
    IridiumSBD(Stream &str, int sleepPinNo = -1, int ringPinNo = -1)
    {
@@ -284,8 +288,13 @@ private:
    // Clear the MO/MT/Both buffers
    int internalClearBuffers(int buffers = 0);
 
+   // Get the IMEI
+   // https://github.com/mikalhart/IridiumSBD/pull/21
+   int internalGetIMEI(char *IMEI, size_t bufferSize);
 };
 
 extern bool ISBDCallback() __attribute__((weak));
 extern void ISBDConsoleCallback(IridiumSBD *device, char c) __attribute__((weak));
 extern void ISBDDiagsCallback(IridiumSBD *device, char c) __attribute__((weak));
+
+#endif

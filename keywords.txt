@@ -40,6 +40,7 @@ clearRingIndicator	KEYWORD2
 checkNetworkAvailable	KEYWORD2
 enable9603	KEYWORD2
 clearBuffers	KEYWORD2
+getIMEI	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)

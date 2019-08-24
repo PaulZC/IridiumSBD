@@ -79,6 +79,19 @@ void setup()
   Serial.print(version);
   Serial.println(".");
 
+  // Example: Print the IMEI
+  char IMEI[16];
+  err = modem.getIMEI(IMEI, sizeof(IMEI));
+  if (err != ISBD_SUCCESS)
+  {
+     Serial.print("getIMEI failed: error ");
+     Serial.println(err);
+     return;
+  }
+  Serial.print("IMEI is ");
+  Serial.print(IMEI);
+  Serial.println(".");
+
   // Example: Test the signal quality.
   // This returns a number between 0 and 5.
   // 2 or better is preferred.

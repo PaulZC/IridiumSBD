@@ -363,6 +363,18 @@ int IridiumSBD::clearBuffers(int buffers)
    return ret;
 }
 
+// High-level wrapper for AT+CGSN
+int IridiumSBD::getIMEI(char *IMEI, size_t bufferSize)
+{
+   if (this->reentrant)
+      return ISBD_REENTRANT;
+
+   this->reentrant = true;
+   int ret = internalGetIMEI(IMEI, bufferSize);
+   this->reentrant = false;
+   return ret;
+}
+
 /*
 Private interface
 */
@@ -1366,3 +1378,21 @@ int IridiumSBD::internalClearBuffers(int buffers)
 
    return ISBD_SUCCESS;
 }
+
+int IridiumSBD::internalGetIMEI(char *IMEI, size_t bufferSize)
+// Get the IMEI
+// https://github.com/mikalhart/IridiumSBD/pull/21
+{
+   if (this->asleep)
+      return ISBD_IS_ASLEEP;
+
+   if (bufferSize < 16) // IMEI is 15 digits
+      return ISBD_RX_OVERFLOW;
+
+   send(F("AT+CGSN\r"));
+   if (!waitForATResponse(IMEI, bufferSize, "\n"))
+      return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
+
+   return ISBD_SUCCESS;
+}
+

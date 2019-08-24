@@ -19,10 +19,16 @@ or [ZOE-M8Q breakout](https://www.sparkfun.com/products/15193) to form an I2C GP
 
 Also included is a new function called _clearBuffers_ which can be used to clear the Mobile Originated or Mobile Terminated message buffers. This allows you to
 overcome the 'feature' (bug?) where the 9603N will automatically re-transmit the last MO message when checking (only) for new MT messages.
+This closes Issues [#10](https://github.com/mikalhart/IridiumSBD/issues/10) and [#11](https://github.com/mikalhart/IridiumSBD/issues/11).
 
 - _clearBuffers(ISBD_CLEAR_MO)_ will clear the MO buffer (default)
 - _clearBuffers(ISBD_CLEAR_MT)_ will clear the MT buffer
 - _clearBuffers(ISBD_CLEAR_BOTH)_ will clear both buffers
+
+Also includes Pull Requests [#14](https://github.com/mikalhart/IridiumSBD/pull/14) and [#21](https://github.com/mikalhart/IridiumSBD/pull/21).
+BasicSend_I2C now includes an example for getIMEI.
+
+Also includes the correction for Issue [#12](https://github.com/mikalhart/IridiumSBD/issues/12).
 
 Enjoy!
 

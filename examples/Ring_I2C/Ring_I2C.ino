@@ -99,6 +99,16 @@ void loop()
     else
       Serial.println("Let's try again.");
 
+    // Clear the Mobile Originated message buffer - just in case it has an old message in it!
+    Serial.println("Clearing the MO buffer (just in case).");
+    err = modem.clearBuffers(ISBD_CLEAR_MO); // Clear MO buffer
+    if (err != ISBD_SUCCESS)
+    {
+      Serial.print("clearBuffers failed: error ");
+      Serial.println(err);
+      return;
+    }
+
     uint8_t buffer[200];
     size_t bufferSize = sizeof(buffer);
     err = modem.sendReceiveSBDText(NULL, buffer, bufferSize);
