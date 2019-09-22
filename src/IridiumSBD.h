@@ -124,6 +124,7 @@ public:
    void clearRingIndicator();
    bool checkNetworkAvailable();
    void enable9603(bool enable);
+   void enable841lowPower(bool enable);
 
    int clearBuffers(int buffers = ISBD_CLEAR_MO);
    int getIMEI(char *IMEI, size_t bufferSize);
@@ -278,12 +279,13 @@ private:
    byte IO_REGISTER;
    
    //These are the bit definitions for the IO 'register'
-   const uint8_t IO_SHDN   = (1 << 0); // LTC3225 !SHDN : Read / Write
-   const uint8_t IO_PWR_EN = (1 << 1); // 9603N power enable via the P-FET : Read / Write
-   const uint8_t IO_ON_OFF = (1 << 2); // 9603N ON_OFF pin : Read / Write
-   const uint8_t IO_RI     = (1 << 3); // 9603N Ring Indicator _flag_ : Read / Write (Set if RI has been seen, cleared by writing a 0 to this bit)
-   const uint8_t IO_NA     = (1 << 4); // 9603N Network Available : Read only
-   const uint8_t IO_PGOOD  = (1 << 5); // LTC3225 PGOOD : Read only
+   const uint8_t IO_SHDN    = (1 << 0); // LTC3225 !SHDN : Read / Write
+   const uint8_t IO_PWR_EN  = (1 << 1); // 9603N power enable via the P-FET : Read / Write
+   const uint8_t IO_ON_OFF  = (1 << 2); // 9603N ON_OFF pin : Read / Write
+   const uint8_t IO_RI      = (1 << 3); // 9603N Ring Indicator _flag_ : Read / Write (Set if RI has been seen, cleared by writing a 0 to this bit)
+   const uint8_t IO_NA      = (1 << 4); // 9603N Network Available : Read only
+   const uint8_t IO_PGOOD   = (1 << 5); // LTC3225 PGOOD : Read only
+   const uint8_t IO_LOW_PWR = (1 << 6); // ATtiny841 low power mode : Read / Write : Set to enable low power mode
 
    // Clear the MO/MT/Both buffers
    int internalClearBuffers(int buffers = 0);

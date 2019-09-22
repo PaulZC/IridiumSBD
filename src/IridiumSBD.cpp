@@ -314,6 +314,21 @@ void IridiumSBD::enable9603(bool enable)
   set9603pins(IO_REGISTER); // Update the pins
 }
 
+void IridiumSBD::enable841lowPower(bool enable)
+{
+	// Enable/disable the Qwiic Iridium ATtiny841's low power mode
+	check9603pins(); // Update IO_REGISTER
+	if (enable)
+	{
+		IO_REGISTER |= IO_LOW_PWR; // Set the LOW_PWR bit
+	}
+	else
+	{
+		IO_REGISTER &= ~IO_LOW_PWR; // Clear the LOW_PWR bit
+	}
+	set9603pins(IO_REGISTER); // Update the pins
+}
+
 bool IridiumSBD::checkRingIndicator()
 {
   // Check the status of the 9603 Ring Indicator flag
