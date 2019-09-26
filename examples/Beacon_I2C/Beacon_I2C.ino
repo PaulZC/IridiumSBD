@@ -46,10 +46,10 @@ void setup()
   Wire.setClock(400000); //Set I2C clock speed to 400kHz
 
   // Check that the Qwiic Iridium is attached
-  if !modem.isConnected()
+  if (!modem.isConnected())
   {
-    Serial.println("I2C device is not connected!")
-    return;
+    Serial.println("I2C device is not connected!");
+    while(1);
   }
 
   Serial.println("Connecting to the GPS receiver...");

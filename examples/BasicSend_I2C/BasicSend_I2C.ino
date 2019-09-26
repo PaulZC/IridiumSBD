@@ -41,7 +41,7 @@ void setup()
   if (!modem.isConnected())
   {
     Serial.println("I2C device is not connected!");
-    return;
+    while(1);
   }
 
   // Enable the supercapacitor charger
