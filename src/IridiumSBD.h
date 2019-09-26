@@ -125,6 +125,7 @@ public:
    bool checkNetworkAvailable();
    void enable9603(bool enable);
    void enable841lowPower(bool enable);
+   bool isConnected();
 
    int clearBuffers(int buffers = ISBD_CLEAR_MO);
    int getIMEI(char *IMEI, size_t bufferSize);

@@ -30,6 +30,13 @@ void setup()
   // Start the I2C wire port connected to the satellite modem
   Wire.begin();
   Wire.setClock(400000); //Set I2C clock speed to 400kHz
+
+  // Check that the Qwiic Iridium is attached
+  if !modem.isConnected()
+  {
+    Serial.println("I2C device is not connected!")
+    return;
+  }
 }
 
 void loop()

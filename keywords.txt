@@ -41,6 +41,7 @@ checkNetworkAvailable	KEYWORD2
 enable9603	KEYWORD2
 clearBuffers	KEYWORD2
 getIMEI	KEYWORD2
+isConnected	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)

@@ -390,6 +390,21 @@ int IridiumSBD::getIMEI(char *IMEI, size_t bufferSize)
    return ret;
 }
 
+//Returns true if the I2C device is connected
+//Always returns true for serial
+boolean IridiumSBD::isConnected()
+{
+   if (this->useSerial) // If we are using Serial
+   {
+		return true;
+   }
+   else
+   {		
+		wireport->beginTransmission((uint8_t)deviceaddress);
+		return (wireport->endTransmission() == 0); // Check that the device ack's
+   }
+}
+
 /*
 Private interface
 */

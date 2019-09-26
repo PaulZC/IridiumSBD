@@ -37,6 +37,13 @@ void setup()
   Wire.begin();
   Wire.setClock(400000); //Set I2C clock speed to 400kHz
 
+  // Check that the Qwiic Iridium is attached
+  if (!modem.isConnected())
+  {
+    Serial.println("I2C device is not connected!");
+    return;
+  }
+
   // Enable the supercapacitor charger
   Serial.println("Enabling the supercapacitor charger...");
   modem.enableSuperCapCharger(true);
