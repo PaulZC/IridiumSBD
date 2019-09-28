@@ -24,8 +24,18 @@ void setup()
 {
   // Start the console serial port
   Serial.begin(115200);
-  while (!Serial);
-  Serial.println("Iridium SBD LowPower I2C");
+  while (!Serial); // Wait for the user to open the serial monitor
+  Serial.println(F("Iridium SBD LowPower I2C"));
+
+  //empty the serial buffer
+  while(Serial.available() > 0) Serial.read();
+
+  //wait for the user to press any key before beginning
+  Serial.println(F("Press any key to start example."));
+  while(Serial.available() == 0);
+
+  //clean up
+  while(Serial.available() > 0) Serial.read();
 
   // Start the I2C wire port connected to the satellite modem
   Wire.begin();
@@ -34,7 +44,7 @@ void setup()
   // Check that the Qwiic Iridium is attached
   if (!modem.isConnected())
   {
-    Serial.println("I2C device is not connected!");
+    Serial.println(F("Qwiic Iridium is not connected! Please check wiring. Freezing."));
     while(1);
   }
 }
@@ -45,31 +55,31 @@ void loop()
   int err;
   
   // Enable the supercapacitor charger
-  Serial.println("Enabling the supercapacitor charger...");
+  Serial.println(F("Enabling the supercapacitor charger..."));
   modem.enableSuperCapCharger(true);
 
   // Wait for the supercapacitor charger PGOOD signal to go high
   while (!modem.checkSuperCapCharger())
   {
-    Serial.println("Waiting for supercapacitors to charge...");
+    Serial.println(F("Waiting for supercapacitors to charge..."));
     delay(1000);
   }
-  Serial.println("Supercapacitors charged!");
+  Serial.println(F("Supercapacitors charged!"));
 
   // Enable power for the 9603N
-  Serial.println("Enabling 9603N power...");
+  Serial.println(F("Enabling 9603N power..."));
   modem.enable9603Npower(true);
 
   // Begin satellite modem operation
-  Serial.println("Starting modem...");
+  Serial.println(F("Starting modem..."));
   modem.setPowerProfile(IridiumSBD::USB_POWER_PROFILE); // Assume 'USB' power (slow recharge)
   err = modem.begin();
   if (err != ISBD_SUCCESS)
   {
-    Serial.print("Begin failed: error ");
+    Serial.print(F("Begin failed: error "));
     Serial.println(err);
     if (err == ISBD_NO_MODEM_DETECTED)
-      Serial.println("No modem detected: check wiring.");
+      Serial.println(F("No modem detected: check wiring."));
     return;
   }
 
@@ -79,38 +89,38 @@ void loop()
   err = modem.getSignalQuality(signalQuality);
   if (err != ISBD_SUCCESS)
   {
-    Serial.print("SignalQuality failed: error ");
+    Serial.print(F("SignalQuality failed: error "));
     Serial.println(err);
     return;
   }
 
-  Serial.print("On a scale of 0 to 5, signal quality is currently ");
+  Serial.print(F("On a scale of 0 to 5, signal quality is currently "));
   Serial.print(signalQuality);
-  Serial.println(".");
+  Serial.println(F("."));
 
   // Power down the modem
-  Serial.println("Putting the 9603N to sleep.");
+  Serial.println(F("Putting the 9603N to sleep."));
   err = modem.sleep();
   if (err != ISBD_SUCCESS)
   {
-    Serial.print("sleep failed: error ");
+    Serial.print(F("sleep failed: error "));
     Serial.println(err);
   }
   
   // Disable 9603N power
-  Serial.println("Disabling 9603N power...");
+  Serial.println(F("Disabling 9603N power..."));
   modem.enable9603Npower(false);
 
   // Disable the supercapacitor charger
-  Serial.println("Disabling the supercapacitor charger...");
+  Serial.println(F("Disabling the supercapacitor charger..."));
   modem.enableSuperCapCharger(false);
 
   // Enable the ATtiny841 low power mode
-  Serial.println("Enabling ATtiny841 low power mode");
+  Serial.println(F("Enabling ATtiny841 low power mode"));
   modem.enable841lowPower(true); // Change this to false if you want to measure the current draw without enabling low power mode
 
-  Serial.println("The current draw should reduce in one second from now...");
-  Serial.println("Sleeping for 30 seconds...");
+  Serial.println(F("The current draw should reduce in one second from now..."));
+  Serial.println(F("Sleeping for 30 seconds..."));
 
   delay(30000);
 }

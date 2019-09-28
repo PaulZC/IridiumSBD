@@ -33,8 +33,18 @@ void setup()
 
   // Start the console serial port
   Serial.begin(115200);
-  while (!Serial);
-  Serial.println("Iridium SBD SendReceive I2C");
+  while (!Serial); // Wait for the user to open the serial monitor
+  Serial.println(F("Iridium SBD SendReceive I2C"));
+
+  //empty the serial buffer
+  while(Serial.available() > 0) Serial.read();
+
+  //wait for the user to press any key before beginning
+  Serial.println(F("Press any key to start example."));
+  while(Serial.available() == 0);
+
+  //clean up
+  while(Serial.available() > 0) Serial.read();
 
   // Start the I2C wire port connected to the satellite modem
   Wire.begin();
@@ -43,36 +53,36 @@ void setup()
   // Check that the Qwiic Iridium is attached
   if (!modem.isConnected())
   {
-    Serial.println("I2C device is not connected!");
+    Serial.println(F("Qwiic Iridium is not connected! Please check wiring. Freezing."));
     while(1);
   }
 
   // Enable the supercapacitor charger
-  Serial.println("Enabling the supercapacitor charger...");
+  Serial.println(F("Enabling the supercapacitor charger..."));
   modem.enableSuperCapCharger(true);
 
   // Wait for the supercapacitor charger PGOOD signal to go high
   while (!modem.checkSuperCapCharger())
   {
-    Serial.println("Waiting for supercapacitors to charge...");
+    Serial.println(F("Waiting for supercapacitors to charge..."));
     delay(1000);
   }
-  Serial.println("Supercapacitors charged!");
+  Serial.println(F("Supercapacitors charged!"));
 
   // Enable power for the 9603N
-  Serial.println("Enabling 9603N power...");
+  Serial.println(F("Enabling 9603N power..."));
   modem.enable9603Npower(true);
 
   // Begin satellite modem operation
-  Serial.println("Starting modem...");
+  Serial.println(F("Starting modem..."));
   modem.setPowerProfile(IridiumSBD::USB_POWER_PROFILE); // Assume 'USB' power (slow recharge)
   int err = modem.begin();
   if (err != ISBD_SUCCESS)
   {
-    Serial.print("Begin failed: error ");
+    Serial.print(F("Begin failed: error "));
     Serial.println(err);
     if (err == ISBD_NO_MODEM_DETECTED)
-      Serial.println("No modem detected: check wiring.");
+      Serial.println(F("No modem detected: check wiring."));
     return;
   }
 
@@ -80,12 +90,12 @@ void setup()
   err = modem.getSignalQuality(signalQuality);
   if (err != 0)
   {
-    Serial.print("SignalQuality failed: error ");
+    Serial.print(F("SignalQuality failed: error "));
     Serial.println(err);
     exit(1);
   }
 
-  Serial.print("Signal quality is ");
+  Serial.print(F("Signal quality is "));
   Serial.println(signalQuality);
 }
 
@@ -108,36 +118,36 @@ void loop()
       
     if (err != ISBD_SUCCESS)
     {
-      Serial.print("sendReceiveSBD* failed: error ");
+      Serial.print(F("sendReceiveSBD* failed: error "));
       Serial.println(err);
     }
     else // success!
     {
       messageSent = true;
-      Serial.print("Inbound buffer size is ");
+      Serial.print(F("Inbound buffer size is "));
       Serial.println(bufferSize);
       for (int i=0; i<bufferSize; ++i)
       {
         Serial.print(buffer[i], HEX);
         if (isprint(buffer[i]))
         {
-          Serial.print("(");
+          Serial.print(F("("));
           Serial.write(buffer[i]);
-          Serial.print(")");
+          Serial.print(F(")"));
         }
-        Serial.print(" ");
+        Serial.print(F(" "));
       }
       Serial.println();
-      Serial.print("Messages remaining to be retrieved: ");
+      Serial.print(F("Messages remaining to be retrieved: "));
       Serial.println(modem.getWaitingMessageCount());
     }
     
     // Clear the Mobile Originated message buffer to avoid re-sending the message during subsequent loops
-    Serial.println("Clearing the MO buffer.");
+    Serial.println(F("Clearing the MO buffer."));
     err = modem.clearBuffers(ISBD_CLEAR_MO); // Clear MO buffer
     if (err != ISBD_SUCCESS)
     {
-      Serial.print("clearBuffers failed: error ");
+      Serial.print(F("clearBuffers failed: error "));
       Serial.println(err);
     }
   }

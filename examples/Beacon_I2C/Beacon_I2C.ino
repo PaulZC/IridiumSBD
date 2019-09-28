@@ -38,9 +38,19 @@ void setup()
 
   // Start the console serial port
   Serial.begin(115200);
-  while (!Serial);
-  Serial.println("Iridium SBD Beacon I2C");
+  while (!Serial); // Wait for the user to open the serial monitor
+  Serial.println(F("Iridium SBD Beacon I2C"));
   
+  //empty the serial buffer
+  while(Serial.available() > 0) Serial.read();
+
+  //wait for the user to press any key before beginning
+  Serial.println(F("Press any key to start example."));
+  while(Serial.available() == 0);
+
+  //clean up
+  while(Serial.available() > 0) Serial.read();
+
   // Start the I2C wire port connected to the satellite modem
   Wire.begin();
   Wire.setClock(400000); //Set I2C clock speed to 400kHz
@@ -48,11 +58,11 @@ void setup()
   // Check that the Qwiic Iridium is attached
   if (!modem.isConnected())
   {
-    Serial.println("I2C device is not connected!");
+    Serial.println(F("Qwiic Iridium is not connected! Please check wiring. Freezing."));
     while(1);
   }
 
-  Serial.println("Connecting to the GPS receiver...");
+  Serial.println(F("Connecting to the GPS receiver..."));
   if (myGPS.begin() == false) //Connect to the Ublox module using Wire port
   {
     Serial.println(F("Ublox GPS not detected at default I2C address. Please check wiring. Freezing."));
@@ -63,31 +73,31 @@ void setup()
   myGPS.saveConfiguration(); //Save the current settings to flash and BBR
   
   // Enable the supercapacitor charger
-  Serial.println("Enabling the supercapacitor charger...");
+  Serial.println(F("Enabling the supercapacitor charger..."));
   modem.enableSuperCapCharger(true);
 
   // Wait for the supercapacitor charger PGOOD signal to go high
   while (!modem.checkSuperCapCharger())
   {
-    Serial.println("Waiting for supercapacitors to charge...");
+    Serial.println(F("Waiting for supercapacitors to charge..."));
     delay(1000);
   }
-  Serial.println("Supercapacitors charged!");
+  Serial.println(F("Supercapacitors charged!"));
 
   // Enable 9603N power
-  Serial.println("Enabling 9603N power...");
+  Serial.println(F("Enabling 9603N power..."));
   modem.enable9603Npower(true);
 
   // Begin satellite modem operation
-  Serial.println("Starting modem...");
+  Serial.println(F("Starting modem..."));
   modem.setPowerProfile(IridiumSBD::USB_POWER_PROFILE); // Assume 'USB' power (slow recharge)
   int err = modem.begin();
   if (err != ISBD_SUCCESS)
   {
-    Serial.print("Begin failed: error ");
+    Serial.print(F("Begin failed: error "));
     Serial.println(err);
     if (err == ISBD_NO_MODEM_DETECTED)
-      Serial.println("No modem detected: check wiring.");
+      Serial.println(F("No modem detected: check wiring."));
     exit(0);
   }
 }
@@ -97,7 +107,7 @@ void loop()
   unsigned long loopStartTime = millis();
 
   // Begin listening to the GPS
-  Serial.println("Beginning to listen for GPS traffic...");
+  Serial.println(F("Beginning to listen for GPS traffic..."));
 
   // Look for GPS signal for up to 5 minutes
   while ((myGPS.getFixType() == 0) && millis() - loopStartTime < 5UL * 60UL * 1000UL)
@@ -130,7 +140,7 @@ void loop()
   Serial.println(F(" (m)"));
 
   // Start talking to the Qwiic Iridium 9603N and power it up
-  Serial.println("Beginning to talk to the Qwiic Iridium 9603N...");
+  Serial.println(F("Beginning to talk to the Qwiic Iridium 9603N..."));
 
   // Construct the message in the format: lat,lon,alt
   char lat_str[15];
@@ -142,19 +152,19 @@ void loop()
   char outBuffer[60]; // Always try to keep message short
   sprintf(outBuffer, "%s,%s,%s", lat_str, lon_str, alt_str);
 
-  Serial.print("Transmitting message '");
+  Serial.print(F("Transmitting message '"));
   Serial.print(outBuffer);
-  Serial.println("'");
+  Serial.println(F("'"));
 
   int err = modem.sendSBDText(outBuffer);
   if (err != ISBD_SUCCESS)
   {
-    Serial.print("Transmission failed with error code ");
+    Serial.print(F("Transmission failed with error code "));
     Serial.println(err);
   }
   else
   {
-    Serial.println("Message sent!");
+    Serial.println(F("Message sent!"));
   }
 
   // Sleep
@@ -164,13 +174,13 @@ void loop()
   {
     int delaySeconds = BEACON_INTERVAL - elapsedSeconds;
     Serial.print(F("Waiting for "));
-    Serial.println(delaySeconds);
+    Serial.print(delaySeconds);
     Serial.println(F(" seconds"));
     delay(1000UL * delaySeconds);
   }
 
   // Wake
-  Serial.println("Wake up!");
+  Serial.println(F("Wake up!"));
 }
 
 void blinkLED(unsigned long interval)
