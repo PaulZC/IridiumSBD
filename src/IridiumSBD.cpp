@@ -405,6 +405,36 @@ boolean IridiumSBD::isConnected()
    }
 }
 
+// High-level wrapper for passThruI2Cread
+int IridiumSBD::passThruI2Cread(uint8_t *rxBuffer, size_t &rxBufferSize, size_t &numBytes)
+// rxBuffer is a pointer to the receive buffer which will store the read serial data
+// rxBufferSize is the size of the receive buffer (so we don't overflow it)
+// On return, numBytes contains the number of bytes written into the rxBuffer (<= rxBufferSize)
+// If there was too much data for the rxBuffer, the function will return an ISBD_RX_OVERFLOW error
+{
+	if (this->reentrant)
+	return ISBD_REENTRANT;
+
+	this->reentrant = true;
+	int ret = internalPassThruI2Cread(rxBuffer, rxBufferSize, numBytes);
+	this->reentrant = false;
+	return ret;
+}
+
+// High-level wrapper for passThruI2Cwrite
+int IridiumSBD::passThruI2Cwrite(uint8_t *txBuffer, size_t &txBufferSize)
+// txBuffer is a pointer to the transmit buffer which contains the serial data to be written
+// txBufferSize is the number of bytes to be written
+{
+	if (this->reentrant)
+	return ISBD_REENTRANT;
+
+	this->reentrant = true;
+	int ret = internalPassThruI2Cwrite(txBuffer, txBufferSize);
+	this->reentrant = false;
+	return ret;
+}
+
 /*
 Private interface
 */
@@ -1350,6 +1380,124 @@ void IridiumSBD::set9603pins(uint8_t pins)
   wireport->write(IO_REG); // Point to the 'IO register'
   wireport->write(pins); // Set the pins
   wireport->endTransmission(); // Send data and surrender the bus
+}
+
+// Functions to support I2C to serial pass thru
+int IridiumSBD::internalPassThruI2Cread(uint8_t *rxBuffer, size_t &rxBufferSize, size_t &numBytes)
+{
+  if (this->asleep)
+    return ISBD_IS_ASLEEP;
+
+  if (this->useSerial)
+    return ISBD_SERIAL_FAILURE; // This function is for I2C only
+
+  //Check how many serial bytes are waiting to be read
+  uint16_t bytesAvailable = 0;
+  wireport->beginTransmission((uint8_t)deviceaddress); // Talk to the I2C device
+  wireport->write(LEN_REG); // Point to the serial buffer length
+  wireport->endTransmission(); // Send data and release the bus (the 841 (WireS) doesn't like it if the Master holds the bus!)
+  wireport->requestFrom((uint8_t)deviceaddress, 2); // Request two bytes
+  if (wireport->available() >= 2)
+  {
+    uint8_t msb = wireport->read();
+    uint8_t lsb = wireport->read();
+    bytesAvailable = (((uint16_t)msb) << 8) | lsb;
+  }
+  while (wireport->available())
+  {
+    wireport->read(); // Mop up any unexpected bytes
+  }
+
+  numBytes = (size_t)bytesAvailable; //Store bytesAvailable in numBytes
+  
+  size_t bufferPtr = 0; // Initialise buffer pointer
+
+  //Now read the serial bytes (if any)
+  if (bytesAvailable > 0)
+  {
+    // Request the bytes
+    // Poke them into rxBuffer
+    // Release the bus afterwards
+    wireport->beginTransmission((uint8_t)deviceaddress); // Talk to the I2C device
+    wireport->write(DATA_REG); // Point to the serial buffer
+    wireport->endTransmission(); // Send data and release the bus (the 841 (WireS) doesn't like it if the Master holds the bus!)
+    while (bytesAvailable > SER_PACKET_SIZE) // If there are _more_ than SER_PACKET_SIZE bytes to be read
+    {
+      wireport->requestFrom((uint8_t)deviceaddress, SER_PACKET_SIZE, false); // Request SER_PACKET_SIZE bytes, don't release the bus
+      while (wireport->available())
+      {
+        uint8_t dbyte = wireport->read(); // Read a byte
+        if (bufferPtr < rxBufferSize) // If storing the byte won't overflow the buffer
+		{
+		  rxBuffer[bufferPtr] = dbyte; // Store the byte
+		  bufferPtr++; // Increment the pointer
+		}
+      }
+      bytesAvailable -= SER_PACKET_SIZE; // Decrease the number of bytes available by SER_PACKET_SIZE
+    }
+    wireport->requestFrom((uint8_t)deviceaddress, bytesAvailable); // Request remaining bytes, release the bus
+    while (wireport->available())
+    {
+      uint8_t dbyte = wireport->read(); // Read a byte
+      if (bufferPtr < rxBufferSize) // If storing the byte won't overflow the buffer
+      {
+        rxBuffer[bufferPtr] = dbyte; // Store the byte
+        bufferPtr++; // Increment the pointer
+      }
+    }
+  }
+
+  //If there were more bytes available than rxBuffer could hold, return ISBD_RX_OVERFLOW
+  if (numBytes > bufferPtr)
+  {
+	  diagprint(F("rxBuffer is too small to hold all available data!\r\n"));
+	  numBytes = bufferPtr;
+	  return (ISBD_RX_OVERFLOW);
+  }
+  else
+  {
+	  return(ISBD_SUCCESS);
+  }
+}
+
+int IridiumSBD::internalPassThruI2Cwrite(uint8_t *txData, size_t &txDataSize)
+{
+  if (this->asleep)
+    return ISBD_IS_ASLEEP;
+
+  if (this->useSerial)
+    return ISBD_SERIAL_FAILURE; // This function is for I2C only
+
+  // We need to make sure we don't send too much I2C data in one go (otherwise we will overflow the ATtiny841's I2C buffer)
+  size_t bytes_to_send = txDataSize; // Send this many bytes in total
+  size_t i=0;
+  size_t nexti;
+  while (bytes_to_send > (TINY_I2C_BUFFER_LENGTH - 1)) // If there are too many bytes to send all in one go
+  {
+    nexti = i + (TINY_I2C_BUFFER_LENGTH - 1);
+    wireport->beginTransmission((uint8_t)deviceaddress);
+    wireport->write(DATA_REG); // Point to the serial data 'register'
+    for (; i<nexti; ++i)
+    {
+      wireport->write(txData[i]); // Write each byte
+    }
+    bytes_to_send = bytes_to_send - (TINY_I2C_BUFFER_LENGTH - 1); // Decrease the number of bytes still to send
+    wireport->endTransmission(); // Send data and release the bus (the 841 (WireS) doesn't like it if the Master holds the bus!)
+  }
+  // There are now <= (TINY_I2C_BUFFER_LENGTH - 1) bytes left to send, so send them and then release the bus
+  wireport->beginTransmission((uint8_t)deviceaddress);
+  wireport->write(DATA_REG); // Point to the 'serial register'
+  for (; i<txDataSize; ++i)
+  {
+    wireport->write(txData[i]);
+  }
+  if (wireport->endTransmission() != 0) //Send data and release bus
+  {
+    diagprint(F("I2C write was not successful!\r\n"));
+	return(ISBD_PROTOCOL_ERROR);
+  }
+  else
+    return(ISBD_SUCCESS);
 }
 
 // I2C_SER functions

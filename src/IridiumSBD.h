@@ -130,6 +130,9 @@ public:
    int clearBuffers(int buffers = ISBD_CLEAR_MO);
    int getIMEI(char *IMEI, size_t bufferSize);
 
+   int passThruI2Cread(uint8_t *rxBuffer, size_t &rxBufferSize, size_t &numBytes);
+   int passThruI2Cwrite(uint8_t *txBuffer, size_t &txBufferSize);
+
    IridiumSBD(Stream &str, int sleepPinNo = -1, int ringPinNo = -1)
    {
       useSerial = true;
@@ -294,6 +297,10 @@ private:
    // Get the IMEI
    // https://github.com/mikalhart/IridiumSBD/pull/21
    int internalGetIMEI(char *IMEI, size_t bufferSize);
+
+   // Functions to support I2C to serial pass thru
+   int internalPassThruI2Cread(uint8_t *rxBuffer, size_t &rxBufferSize, size_t &numBytes);
+   int internalPassThruI2Cwrite(uint8_t *txBuffer, size_t &txBufferSize);
 };
 
 extern bool ISBDCallback() __attribute__((weak));
