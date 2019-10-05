@@ -16,13 +16,11 @@ Both breakouts are also available from SparkFun: [RockBLOCK MK2](https://www.spa
 Both of these breakouts use serial (UART) interfacing. The [Qwiic Iridium 9603N](https://github.com/PaulZC/Qwiic_Iridium_9603N) provides I2C support instead of serial,
 allowing you to add Iridium SBD communication to any Qwiic or I2C project.
 
-Follow [this link] to jump to I2C Interfacing.
-
 ## Serial "3-wire" Interfacing
 
 Rock 7 have made interfacing the RockBLOCK to the Arduino quite simple.  Each RockBLOCK conveniently exposes many signal lines for the client device, but it’s actually
 only necessary to connect 4 or 5 of these to get your application up and running. In our configuration we ignore the flow control lines and talk to the RockBLOCK over what
-Iridium calls a "3-wire" TTL serial interface.  In wiring table below, we assume that the RockBLOCK is being powered from the Arduino 5V power bus. 
+Iridium calls a "3-wire" TTL serial interface.  In the wiring table below, we assume that the RockBLOCK is being powered from the Arduino 5V power bus. 
 
 | RockBLOCK Connection | Arduino Connection |
 | --- | --- |
@@ -33,14 +31,20 @@ Iridium calls a "3-wire" TTL serial interface.  In wiring table below, we assume
 | SLEEP (optional) | GPIO pin |
 | RING (optional) | GPIO pin |
  
-A minimal “3-wire” connection to RockBLOCK
-
 The TX and RX lines are labeled on the RockBLOCK as viewed from the Arduino, so the TX line would be transmitting serial data _to_ the RockBLOCK.  These lines support
 TTL-level serial (default 19200 baud), so you can either connect it directly to a built-in UART or create a “soft” serial on any two suitable pins. We usually opt for the
-latter on smaller devices like Uno to free up the UART(s) for diagnostic and otherconsole communications.
+latter on smaller devices like Uno to free up the UART(s) for diagnostic and other console communications.
 
-The active low SLEEP wire may be pulled high (indicating that the device is perpetuallyawake), but it’s a good power saving technique to connect it to a general-purpose pin,
+The active low SLEEP wire may be pulled high (indicating that the device is perpetually awake), but it’s a good power saving technique to connect it to a general-purpose pin,
 allowing the library to put the RockBLOCK into a low power "sleep" state when its services are not needed.  The RING line is used to alert the client that a message is available.
+
+## I2C Interfacing
+
+Connections to the Qwiic Iridium are made by SparkFun's standard 4-pin Qwiic connector. The four wires are: 3.3V Power, GND, SCL and SDA.
+
+The Qwiic Iridium has a default I2C address of 0x63, but the user does not actually need to know this as all I2C communication can be done transparently through the library.
+
+Access to the 9603N's Ring Indicator and Network Available pins is also done through the library.
 
 ## Non-blocking Retry Strategy 
 
@@ -83,8 +87,6 @@ power bus replenishes it. Under certain low power conditions it is important tha
 In particular, when powered by a low-power 90 mA max USB supply, the interval between transmit retries should be extended to as much as 60 seconds, compared to 20 for, say, a high-current
 battery solution.
 
-(Note: these restrictions do not necessarily apply to the Qwiic Iridium)
-
 To transparently support these varying power profiles, **IridiumSBD** provides the ability to fine-tune the delay between retries.  This is done by calling 
 
 ```
@@ -101,7 +103,9 @@ modem.setPowerProfile(IridiumSBD::DEFAULT_POWER_PROFILE);
 
 ## Construction and Startup
 
-To begin using the library, first create an **IridiumSBD** object.  The **IridiumSBD** constructor binds the new object to an Arduino **Stream** (i.e. the device’s
+### Serial Interfacing
+
+To begin using the library with the serial interface, first create an **IridiumSBD** object. The **IridiumSBD** constructor binds the new object to an Arduino **Stream** (i.e. the device’s
 serial port) and, optionally, its SLEEP and RING lines:
 
 ```
@@ -111,8 +115,8 @@ IridiumSBD(Stream &stream, int sleepPinNo = -1, int ringPinNo = -1);
 Example startup:
 
 ```
-#include "IridiumSBD.h"
-#include "SoftwareSerial.h" 
+#include <IridiumSBD.h>
+#include <SoftwareSerial.h>
 
 SoftwareSerial ssIridium(18, 19); // RockBLOCK serial port on 18/19 
 IridiumSBD modem(ssIridium, 10);  // SLEEP pin on 10, RING pin not connected 
@@ -124,14 +128,40 @@ void setup()
    ...
 ```
 
+### I2C Interfacing
+
+To begin using the library with the I2C interface, create an **IridiumSBD** object binding the object to Wire instead of serial:
+
+```
+IridiumSBD(TwoWire &Wire);
+```
+
+Example startup:
+
+```
+#include <IridiumSBD.h>
+#include <Wire.h>
+
+IridiumSBD modem(Wire);
+ 
+void setup() 
+{ 
+   modem.setPowerProfile(IridiumSBD::USB_POWER_PROFILE); 
+   modem.begin(); // Wake up the 9603N and prepare it for communications. 
+   ...
+```
+
 ## Data transmission
 
 The methods that make up the core of the **IridiumSBD** public interface, are, naturally, those that send and receive data. There are four such methods in **IridiumSBD**:
 two "send-only" functions (text and binary), and two “send-and-receive” functions (again, text and binary):
 
 ```
-// Send a text message int sendSBDText(const char *message);
-// Send a binary message int sendSBDBinary(const uint8_t *txData, size_t txDataSize);
+// Send a text message
+int sendSBDText(const char *message);
+
+// Send a binary message
+int sendSBDBinary(const uint8_t *txData, size_t txDataSize);
 
 // Send a text message and receive one (if available)
 int sendReceiveSBDText(const char *message, uint8_t *rxBuffer, size_t &rxBufferSize); 
@@ -139,6 +169,8 @@ int sendReceiveSBDText(const char *message, uint8_t *rxBuffer, size_t &rxBufferS
 // Send a binary message and receive one (if available)
 int sendReceiveSBDBinary(const uint8_t *txData, size_t txDataSize, uint8_t *rxBuffer, size_t &rxBufferSize);
 ```
+
+Applications using serial and I2C interfaces make use of the same four methods, the low level communication is routed automatically to the correct interface by the library.
 
 ## Send-only and Receive-only applications
 
@@ -151,11 +183,9 @@ If your application is _receive-only_, call **sendReceiveSBDText** with a **NULL
 
 If no inbound message is available, the **sendReceive** messages indicate this by returning **ISBD_SUCCESS** and setting **rxBufferSize** to 0.
 
-Note that **getWaitingMessageCount** is only valid after a successful send/receive operation.
-
 ## Diagnostics  
 
-**IridiumSBD** operates by maintaining a TTL-serial dialog with the Iridium 9602/3. To diagnose failures it is often useful to "spy" on this conversation. If you provide a callback function
+**IridiumSBD** operates by maintaining a serial or I2C dialog with the Iridium 9602/3. To diagnose failures it is often useful to "spy" on this conversation. If you provide a callback function
 with the signature
 
 ```
@@ -169,8 +199,8 @@ callback like this:
 void ISBDDiagsCallback(IridiumSBD *device, char c); 
 ```
 
-These callbacks allow the host application to monitor Iridium serial traffic and the library’s diagnostic messages. The typical usage is to simply forward both to the Arduino serial port
-for display on a computer terminal: 
+These callbacks allow the host application to monitor Iridium traffic and the library’s diagnostic messages. The typical usage is to simply forward both to the Arduino serial port
+for display in the serial monitor: 
 
 ```
 void ISBDConsoleCallback(IridiumSBD *device, char c)
@@ -182,11 +212,12 @@ void ISBDDiagsCallback(IridiumSBD *device, char c)
 { 
   Serial.write(c); 
 } 
+```
 
 ## Receiving Multiple Messages
 
 After every successful SBD send/receive operation, the Iridium satellite system informs the client how many messages remain in the inbound message queue. The library reports this value
-with the getWaitingMessageCount method. Here’s an example of a loop that reads all the messages in the inbound message queue: 
+with the **getWaitingMessageCount** method. Here’s an example of a loop that reads all the messages in the inbound message queue: 
 
 ```
 do 
@@ -204,6 +235,8 @@ do
    /* ...process message in rxBuffer here... */ 
 } while (modem.getWaitingMessageCount() > 0);
 ```
+
+Note that **getWaitingMessageCount** is only valid after a successful send/receive operation.
 
 ## Erratum Workaround
 
@@ -529,4 +562,4 @@ This library is distributed under the terms of the GNU LGPL license.
 | 1.0 | 2013 | Mikal Hart | Initial draft submitted to Rock 7 for review |
 | 1.1 | 2014 | Mikal Hart | Added text about the AT-MSSTM erratum/workaround and changing the minimum required signal quality. Also documented related new methods **setMinimumSignalQuality** and **useMSSTMWorkaround()**. | 
 | 2.0 | 21 October 2017 | Mikal Hart | Several API revisions. Removed **setMinimumSignalQuality** (no longer used), added support for RING monitoring (**enableRingAlerts** method, and new RING alert pin on constructor), and changed the way diagnostics are done by replacing the **attachConsole** and **attachDiags** methods with user-supplied callbacks **ISBDConsoleCallback** and **ISBDDiagsCallback**. Added getSystemTime and getFirmwareVersion utility functions.  Add explanation that MSSTM workaround is no longer enabled by default if firmware is sufficiently new (TA13001 or newer). |
-
+| 3.0 | October 2019 | Paul Clark | Added I2C support for the Qwiic Iridium. Resttructured the examples. Added the feature requests and corrected the issues identified in version 2.0 |

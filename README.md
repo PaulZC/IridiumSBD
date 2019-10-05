@@ -14,6 +14,10 @@ allowing you to add Iridium SBD communication to any Qwiic or I2C project.
 
 A full set of [examples](https://github.com/PaulZC/IridiumSBD/tree/master/examples) demonstrate how to use both interfaces.
 
+## Documentation
+
+You can documentation for the library in the [documentation folder](https://github.com/PaulZC/IridiumSBD/tree/master/documentation)
+
 ## History
 
 [Versions 1 and 2](https://github.com/mikalhart/IridiumSBD) of this library were written by Mikal Hart with generous support from [Rock 7 Mobile](http://rock7mobile.com).
