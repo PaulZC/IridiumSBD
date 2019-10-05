@@ -18,7 +18,7 @@ allowing you to add Iridium SBD communication to any Qwiic or I2C project.
 
 ## Serial "3-wire" Interfacing
 
-Rock 7 have made interfacing the RockBLOCK to the Arduino quite simple.  Each RockBLOCK conveniently exposes many signal lines for the client device, but it’s actually
+Rock 7 have made interfacing the RockBLOCK to the Arduino quite simple.  Each RockBLOCK conveniently exposes many signal lines for the client device, but it's actually
 only necessary to connect 4 or 5 of these to get your application up and running. In our configuration we ignore the flow control lines and talk to the RockBLOCK over what
 Iridium calls a "3-wire" TTL serial interface.  In the wiring table below, we assume that the RockBLOCK is being powered from the Arduino 5V power bus. 
 
@@ -32,10 +32,10 @@ Iridium calls a "3-wire" TTL serial interface.  In the wiring table below, we as
 | RING (optional) | GPIO pin |
  
 The TX and RX lines are labeled on the RockBLOCK as viewed from the Arduino, so the TX line would be transmitting serial data _to_ the RockBLOCK.  These lines support
-TTL-level serial (default 19200 baud), so you can either connect it directly to a built-in UART or create a “soft” serial on any two suitable pins. We usually opt for the
+TTL-level serial (default 19200 baud), so you can either connect it directly to a built-in UART or create a "soft" serial on any two suitable pins. We usually opt for the
 latter on smaller devices like Uno to free up the UART(s) for diagnostic and other console communications.
 
-The active low SLEEP wire may be pulled high (indicating that the device is perpetually awake), but it’s a good power saving technique to connect it to a general-purpose pin,
+The active low SLEEP wire may be pulled high (indicating that the device is perpetually awake), but it's a good power saving technique to connect it to a general-purpose pin,
 allowing the library to put the RockBLOCK into a low power "sleep" state when its services are not needed.  The RING line is used to alert the client that a message is available.
 
 ## I2C Interfacing
@@ -61,7 +61,7 @@ bool ISBDCallback();
 ```
 
 (and this is recommended for all but the most trivial applications), then that function will be called repeatedly while the library is waiting for long operations to complete.
-In it you can take care of activities that need doing while you’re waiting for the transmission to complete. As a simple example, this blinks an LED during the library operations:
+In it you can take care of activities that need doing while you're waiting for the transmission to complete. As a simple example, this blinks an LED during the library operations:
 
 ``` 
 bool ISBDCallback()
@@ -90,14 +90,14 @@ battery solution.
 To transparently support these varying power profiles, **IridiumSBD** provides the ability to fine-tune the delay between retries.  This is done by calling 
 
 ```
-// For USB “low current” applications 
+// For USB "low current" applications 
 modem.setPowerProfile(IridiumSBD::USB_POWER_PROFILE); 
 ```
 
 or 
 
 ```
-// For “high current” (battery-powered) applications
+// For "high current" (battery-powered) applications
 modem.setPowerProfile(IridiumSBD::DEFAULT_POWER_PROFILE); 
 ```
 
@@ -105,7 +105,7 @@ modem.setPowerProfile(IridiumSBD::DEFAULT_POWER_PROFILE);
 
 ### Serial Interfacing
 
-To begin using the library with the serial interface, first create an **IridiumSBD** object. The **IridiumSBD** constructor binds the new object to an Arduino **Stream** (i.e. the device’s
+To begin using the library with the serial interface, first create an **IridiumSBD** object. The **IridiumSBD** constructor binds the new object to an Arduino **Stream** (i.e. the device's
 serial port) and, optionally, its SLEEP and RING lines:
 
 ```
@@ -133,7 +133,7 @@ void setup()
 To begin using the library with the I2C interface, create an **IridiumSBD** object binding the object to Wire instead of serial:
 
 ```
-IridiumSBD(TwoWire &Wire);
+IridiumSBD(TwoWire &wirePort);
 ```
 
 Example startup:
@@ -154,7 +154,7 @@ void setup()
 ## Data transmission
 
 The methods that make up the core of the **IridiumSBD** public interface, are, naturally, those that send and receive data. There are four such methods in **IridiumSBD**:
-two "send-only" functions (text and binary), and two “send-and-receive” functions (again, text and binary):
+two "send-only" functions (text and binary), and two "send-and-receive" functions (again, text and binary):
 
 ```
 // Send a text message
@@ -176,7 +176,7 @@ Applications using serial and I2C interfaces make use of the same four methods, 
 
 Note that at the lowest-level, Iridium SBD transactions always involve the sending _and_ receiving of exactly one message (if one is available). That means that if you call
 the send-only variants **sendSBDText** or **sendSBDBinary** and messages happen to be waiting in your incoming (RX) message queue, the first of these is discarded and irrevocably lost.
-This may be perfectly acceptable for an  application that doesn’t care about inbound messages, but if there is some chance that you will need to process one, call **sendReceiveSBDText**
+This may be perfectly acceptable for an  application that doesn't care about inbound messages, but if there is some chance that you will need to process one, call **sendReceiveSBDText**
 or **sendReceiveSBDBinary** instead.
 
 If your application is _receive-only_, call **sendReceiveSBDText** with a **NULL** outbound message parameter.
@@ -199,7 +199,7 @@ callback like this:
 void ISBDDiagsCallback(IridiumSBD *device, char c); 
 ```
 
-These callbacks allow the host application to monitor Iridium traffic and the library’s diagnostic messages. The typical usage is to simply forward both to the Arduino serial port
+These callbacks allow the host application to monitor Iridium traffic and the library's diagnostic messages. The typical usage is to simply forward both to the Arduino serial port
 for display in the serial monitor: 
 
 ```
@@ -217,7 +217,7 @@ void ISBDDiagsCallback(IridiumSBD *device, char c)
 ## Receiving Multiple Messages
 
 After every successful SBD send/receive operation, the Iridium satellite system informs the client how many messages remain in the inbound message queue. The library reports this value
-with the **getWaitingMessageCount** method. Here’s an example of a loop that reads all the messages in the inbound message queue: 
+with the **getWaitingMessageCount** method. Here's an example of a loop that reads all the messages in the inbound message queue: 
 
 ```
 do 
@@ -272,7 +272,7 @@ Many **IridiumSBD** methods return an integer error status code, with ISBD_SUCCE
   
 ## IridiumSBD Interface 
 
-### Constructor 
+### Constructor (Serial)
 
 ```
 IridiumSBD(Stream &stream, int sleepPinNo = -1, int ringPinNo = -1) 
@@ -284,6 +284,17 @@ IridiumSBD(Stream &stream, int sleepPinNo = -1, int ringPinNo = -1)
 - Parameter: **sleepPin** - The number of the Arduino pin connected to the RockBLOCK SLEEP line. 
  
 Note: Connecting and using the sleepPin is recommended for battery-based solutions. Use **sleep()** to put the RockBLOCK into a low-power state, and **begin()** to wake it back up. 
+ 
+### Constructor (I2C)
+
+```
+IridiumSBD(TwoWire &wirePort = Wire, uint8_t deviceAddress = 0x63)
+```
+
+- Description: Creates an IridiumSBD library object 
+- Returns: N/A 
+- Parameter: **wirePort** - The I2C (Wire) port that the Qwiic Iridium is connected to. 
+- Parameter: **deviceAddress** - The address used by the ATtiny841 for I2C communication. 
  
 ### Startup
 
@@ -298,7 +309,7 @@ int begin()
 Notes:
 - **begin()** also serves as the way to wake a RockBLOCK that is asleep. 
 - At initial power up, this method make take several tens of seconds as the device charges.  When waking from sleep the process should be faster. 
-- If provided, the user’s **ISBDCallback** function is repeatedly called during this operation. 
+- If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
 - This function should be called before any transmit/receive operation 
 
 ### Data transmission 
@@ -315,7 +326,7 @@ Notes:
 - The library calculates retries the operation for up to 300 seconds by default. (To change this value, call **adjustSendReceiveTimeout**.) 
 - The maximum size of a transmitted packet (including header and checksum) is 340 bytes. 
 - If there are any messages in the RX queue, the first of these is discarded when this function is called. 
-- If provided, the user’s **ISBDCallback** function is repeatedly called during this operation. 
+- If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
  
 ```
 int sendSBDBinary(const uint8_t *txData, size_t txDataSize) 
@@ -330,7 +341,7 @@ Notes:
 - The library calculates and transmits the required headers and checksums and retries the operation for up to 300 seconds by default. (To change this value, call **adjustSendReceiveTimeout**.)   
 - The maximum size of a transmitted packet (including header and checksum) is 340 bytes. 
 - If there are any messages in the RX queue, the first of these is discarded when this function is called. 
-- If provided, the user’s **ISBDCallback** function is repeatedly called during this operation. 
+- If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
  
 ```
 int sendReceiveSBDText(const char *message, uint8_t *rxBuffer, size_t &rxBufferSize) 
@@ -343,12 +354,11 @@ int sendReceiveSBDText(const char *message, uint8_t *rxBuffer, size_t &rxBufferS
 - Parameter: **rxBufferSize** - The size of the buffer in bytes. 
  
 Notes:
-- The library calculates retries the operation for up to 300 seconds by default.  (To change this value, call adjustSendReceiveTimeout.) 
+- The library calculates retries the operation for up to 300 seconds by default. (To change this value, call **adjustSendReceiveTimeout**.) 
 - The maximum size of a transmitted packet (including header and checksum) is 340 bytes. 
 - The maximum size of a received packet is 270 bytes. 
-- If there are any messages in the RX queue, the first of these is discarded when this function is called. 
-- If provided, the user’s ISBDCallback function is repeatedly called during this operation. 
-- The library returns the size of the buffer actually received into rxBufferSize.  This value should always be set to the actual buffer size before calling sendReceiveSBDText. 
+- If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
+- The library returns the size of the buffer actually received into rxBufferSize. This value should always be set to the actual buffer size before calling sendReceiveSBDText. 
 
 ```
 int sendReceiveSBDBinary(const uint8_t *txData, size_t txDataSize, uint8_t *rxBuffer, size_t &rxBufferSize) 
@@ -365,8 +375,8 @@ Notes:
 - The library calculates and transmits the required headers and checksums and retries the operation for up to 300 seconds by default. (To change this value, call **adjustSendReceiveTimeout**.) 
 - The maximum size of a transmitted packet (including header and checksum) is 340 bytes. 
 - The maximum size of a received packet is 270 bytes. 
-- If there are any messages in the RX queue, the first of these is discarded when this function is called. 
-- If provided, the user’s **ISBDCallback** function is repeatedly called during this operation. 
+- If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
+- The library returns the size of the buffer actually received into rxBufferSize. This value should always be set to the actual buffer size before calling sendReceiveSBDText. 
  
 ### Utilities 
 
@@ -379,7 +389,7 @@ int getSignalQuality(int &quality)
 - Parameter: **quality** – Return value: the strength of the signal (0=nonexistent, 5=high) 
  
 Notes:
-- If provided, the user’s **ISBDCallback** function is repeatedly called during this operation. 
+- If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
 - This method is mostly informational.  It is not strictly necessary for the user application to verify that a signal exists before calling one of the transmission functions, as these check signal quality themselves. 
  
 ```
@@ -405,20 +415,20 @@ Notes:
 - This method returns the Iridium network time in tm. 
 - "tm" is a C standard library structure defined in <time.h> 
 - Note that the tm_mon field is zero-based, i.e. January is 0 
-- This function uses AT+MSSTM, which might report “Network not found”. In this case, the function returns ISBD_NO_NETWORK. 
+- This function uses AT-MSSTM, which might report "Network not found". In this case, the function returns ISBD_NO_NETWORK. 
 
 ```
 int sleep() 
 ```
  
-- Description: Puts the RockBLOCK into low power “sleep” mode 
+- Description: Puts the RockBLOCK into low power "sleep" mode 
 - Returns: ISBD_SUCCESS if successful, a non-zero code otherwise 
 - Parameter: **None**. 
  
 Notes:
 - This method gracefully shuts down the RockBLOCK and puts it into low-power standby mode by bringing the active low SLEEP line low. 
 - Wake the device by calling **begin()**. 
-- If provided, the user’s **ISBDCallback** function is repeatedly called during this operation. 
+- If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
 
 ```
 bool isAsleep() 
@@ -432,17 +442,14 @@ bool isAsleep()
 bool isRingAsserted() 
 ```
  
-- Description: indicates whether the RockBLOCK’s RING line is asserted  
+- Description: indicates whether the RockBLOCK's RING line is asserted  
 - Returns: **true** if RING is asserted 
 - Parameter: **None**. 
- 
-Notes:
-- The Iridium documentation says that RING is asserted for 5 seconds after an incoming message is detected, or until a message transfer takes place. 
-  
+
 ```
 int getFirmwareVersion(char *version, size_t bufferSize) 
 ```
- 
+
 - Description: Returns a string representing the firmware revision number. 
 - Returns: ISBD_SUCCESS if successful, a non-zero code otherwise. 
 - Parameter: **version** – the buffer to contain the version string 
@@ -511,6 +518,31 @@ Notes:
 - This method take effect at the next call to **begin()**, so typically you would call this before you start your device.  
 - RING alerts are enabled by default if the library user has specified a RING pin for the IridiumSBD constructor.  Otherwise they are disabled by default.  Use this method to override that as needed. 
  
+```
+int getIMEI(char *IMEI, size_t bufferSize)
+```
+
+- Description: Returns a string representing the IMEI. 
+- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise. 
+- Parameter: **IMEI** – the buffer to contain the version string 
+- Parameter: **bufferSize** – the size of the buffer to be filled 
+ 
+Notes:
+- This method returns the IMEI string in the IMEI buffer. 
+- bufferSize should be at least 16 to contain the 15 digit IMEI with the 0 terminator. 
+
+```
+int clearBuffers(int buffers = ISBD_CLEAR_MO);
+```
+
+- Description: Clears the Mobile Originated (MO), Mobile Terminated (MT) or Both message buffers. 
+- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise. 
+- Parameter: **buffers** – the buffer(s) to be cleared
+ 
+Notes:
+- Will default to clearing the MO buffer (**ISBD_CLEAR_MO**)
+- **buffers** can also be set to: **ISBD_CLEAR_MT** to clear the MT buffer; or **ISBD_CLEAR_BOTH** to clear both MO and MT buffers
+
 ### Callbacks (optional)
  
 ```
@@ -542,7 +574,7 @@ Notes:
 void ISBDDiagsCallback(IridiumSBD *device, char c) 
 ```
  
-- Description: An optional user-supplied callback to monitor the library’s run state. 
+- Description: An optional user-supplied callback to monitor the library's run state. 
 - Returns: **None**.
 - Parameter: **device** – a handle to the modem device 
 - Parameter: **c** – a character in the run log 
@@ -562,4 +594,4 @@ This library is distributed under the terms of the GNU LGPL license.
 | 1.0 | 2013 | Mikal Hart | Initial draft submitted to Rock 7 for review |
 | 1.1 | 2014 | Mikal Hart | Added text about the AT-MSSTM erratum/workaround and changing the minimum required signal quality. Also documented related new methods **setMinimumSignalQuality** and **useMSSTMWorkaround()**. | 
 | 2.0 | 21 October 2017 | Mikal Hart | Several API revisions. Removed **setMinimumSignalQuality** (no longer used), added support for RING monitoring (**enableRingAlerts** method, and new RING alert pin on constructor), and changed the way diagnostics are done by replacing the **attachConsole** and **attachDiags** methods with user-supplied callbacks **ISBDConsoleCallback** and **ISBDDiagsCallback**. Added getSystemTime and getFirmwareVersion utility functions.  Add explanation that MSSTM workaround is no longer enabled by default if firmware is sufficiently new (TA13001 or newer). |
-| 3.0 | October 2019 | Paul Clark | Added I2C support for the Qwiic Iridium. Resttructured the examples. Added the feature requests and corrected the issues identified in version 2.0 |
+| 3.0 | October 2019 | Paul Clark | Added I2C support for the Qwiic Iridium. Restructured the examples. Added the feature requests (**getIMEI** and **clearBuffers**) and corrected the issues identified in version 2.0 |
