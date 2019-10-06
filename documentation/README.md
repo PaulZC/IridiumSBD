@@ -10,11 +10,8 @@ from the heart of the Amazon to the Siberian tundra, from the Arctic to the Anta
 This library, **IridiumSBD**, uses Iridium's **SBD** ("Short Burst Data") protocol to send and receive short messages to/from the Iridium hub.
 SBD is a "text message"-like technology that supports the transmission of text or binary messages up to a certain maximum size (270 bytes received, 340 bytes transmitted).
 
-Breakout boards for the 9602 and 9603N are available in different formats. [Rock 7 Mobile](http://rock7mobile.com) provide the original 9602-based
-[RockBLOCK MK2](http://www.rock7mobile.com/products-rockblock) and the newer, more compact, 9603N-based [RockBLOCK 9603](http://www.rock7mobile.com/products-rockblock-9603). 
-Both breakouts are also available from SparkFun: [RockBLOCK MK2](https://www.sparkfun.com/products/13745) and [RockBLOCK 9603N](https://www.sparkfun.com/products/14498).
-Both of these breakouts use serial (UART) interfacing. The [Qwiic Iridium 9603N](https://github.com/PaulZC/Qwiic_Iridium_9603N) provides I2C support instead of serial,
-allowing you to add Iridium SBD communication to any Qwiic or I2C project.
+Breakout boards for the 9602 and 9603N are available in different formats. Most of these breakouts use serial (UART) interfacing but I2C is possible too and this version of
+the library supports both. A full set of [examples](https://github.com/PaulZC/IridiumSBD/tree/master/examples) demonstrate how to use both interfaces.
 
 ## Serial "3-wire" Interfacing
 

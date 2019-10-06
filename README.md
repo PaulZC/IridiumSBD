@@ -6,25 +6,38 @@ from the heart of the Amazon to the Siberian tundra, from the Arctic to the Anta
 This library, **IridiumSBD**, uses Iridium's **SBD** ("Short Burst Data") protocol to send and receive short messages to/from the Iridium hub.
 SBD is a "text message"-like technology that supports the transmission of text or binary messages up to a certain maximum size (270 bytes received, 340 bytes transmitted).
 
-Breakout boards for the 9602 and 9603N are available in different formats. [Rock 7 Mobile](http://rock7mobile.com) provide the original 9602-based
-[RockBLOCK MK2](http://www.rock7mobile.com/products-rockblock) and the newer, more compact, 9603N-based [RockBLOCK 9603](http://www.rock7mobile.com/products-rockblock-9603). 
-The breakouts are also available from SparkFun: [RockBLOCK MK2](https://www.sparkfun.com/products/13745) and [RockBLOCK 9603N](https://www.sparkfun.com/products/14498).
-Both of these breakouts use serial (UART) interfacing. The [Qwiic Iridium 9603N](https://github.com/PaulZC/Qwiic_Iridium_9603N) provides I2C support instead of serial,
-allowing you to add Iridium SBD communication to any Qwiic or I2C project.
+Breakout boards for the 9602 and 9603N are available in different formats. Most of these breakouts use serial (UART) interfacing but I2C (Qwiic) is possible too and this version of
+the library supports both.
 
-A full set of [examples](https://github.com/PaulZC/IridiumSBD/tree/master/examples) demonstrate how to use both interfaces.
+Grateful thanks go to:
+- [Mikal Hart](https://github.com/mikalhart) for writing the original versions of **IridiumSBD** and for **TinyGPSPlus**
+
+## Repository Contents
+
+- **/documentation** - Full documentation for the library (.md).
+- **/examples** - Example sketches for the library (.ino). Run these from the Arduino IDE. They demonstrate how to use both serial and I2C interfaces.
+- **/src** - Source files for the library (.cpp, .h).
+- **keywords.txt** - Keywords from this library that will be highlighted in the Arduino IDE.
+- **library.properties** - General library properties for the Arduino package manager.
 
 ## Documentation
 
 You can find documentation for the library in the [documentation folder](https://github.com/PaulZC/IridiumSBD/tree/master/documentation)
 
+## Products That Use This Library
+
+- [RockBLOCK MK2](http://www.rock7mobile.com/products-rockblock) - The original Rock7 RockBLOCK based on the 9602.
+- [RockBLOCK 9603](http://www.rock7mobile.com/products-rockblock-9603) - The newer, more compact RockBLOCK based on the 9603N.
+- [WRL-13745](https://www.sparkfun.com/products/13745) - The original RockBLOCK, also available from your friends at SparkFun.
+- [WRL-14498](https://www.sparkfun.com/products/14498) - The RockBLOCK 9603, also available from your friends at SparkFun.
+- [Qwiic Iridium 9603N](https://github.com/PaulZC/Qwiic_Iridium_9603N) - Provides I2C support instead of serial, allowing you to add Iridium SBD communication to any Qwiic or I2C project.
+
 ## History
 
 [Versions 1 and 2](https://github.com/mikalhart/IridiumSBD) of this library were written by Mikal Hart with generous support from [Rock 7 Mobile](http://rock7mobile.com).
 
-This version is based on Version 2.0 of IridiumSBD but has been modified to provide I2C support for the [Qwiic Iridium 9603N](https://github.com/PaulZC/Qwiic_Iridium_9603N).
-Serial will still work too of course. New [examples](https://github.com/PaulZC/IridiumSBD/tree/master/examples) demonstrate how to use the I2C interface. The serial examples
-have also been restructured and enhanced.
+This version is based on Version 2.0 of IridiumSBD but has been modified to provide I2C support for the Qwiic Iridium 9603N. Serial will still work too of course.
+New [examples](https://github.com/PaulZC/IridiumSBD/tree/master/examples) demonstrate how to use the I2C interface. The serial examples have also been restructured and enhanced.
 
 This version of the library contains a new function called _clearBuffers_ which can be used to clear the Mobile Originated or Mobile Terminated message buffers.
 This allows you to overcome the 'feature' (bug?) where the 9603N will automatically re-transmit the last MO message when checking for new MT messages.
