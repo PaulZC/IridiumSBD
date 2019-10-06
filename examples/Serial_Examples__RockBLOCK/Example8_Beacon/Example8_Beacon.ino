@@ -23,7 +23,7 @@
 #define DIAGNOSTICS false // Change this to see diagnostics
 
 // Time between transmissions (seconds)
-#define BEACON_INTERVAL 3600
+#define BEACON_INTERVAL 600
 
 IridiumSBD modem(IridiumSerial);
 TinyGPSPlus tinygps;
@@ -114,7 +114,7 @@ void loop()
   {
     int delaySeconds = BEACON_INTERVAL - elapsedSeconds;
     Serial.print(F("Waiting for "));
-    Serial.println(delaySeconds);
+    Serial.print(delaySeconds);
     Serial.println(F(" seconds"));
     delay(1000UL * delaySeconds);
   }

@@ -100,7 +100,7 @@ Please be aware that this does mean you will be charged for the message _twice_;
 
 ### Example 11: Low Power
 
-This example demonstrates how to put the Qwiic Iridium into low power mode. With the 9603N and the super capacitor charger disabled, the Qwiic Iridium will draw
+This example demonstrates how to put the Qwiic Iridium into low power mode. With the 9603N, super capacitor charger and power LED disabled, the Qwiic Iridium will draw
 approximately 1 microamp when in low power mode. The ATtiny841 processor will wake up normally when it next sees activity on the I2C bus or the serial interface or
 receives an interrupt from the Ring Indicator signal.
 

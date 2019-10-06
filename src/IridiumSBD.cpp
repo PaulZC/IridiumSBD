@@ -201,6 +201,14 @@ bool IridiumSBD::hasRingAsserted()
           clearRingIndicator(); // Clear the flag
       }
    }
+   else // If we are using serial then let's check the ringPin manually instead of assuming cancelled() will be able to do it
+   {
+      if ((ringPin != -1) && digitalRead(ringPin) == LOW)
+      {
+	      ret = true; // Return true
+	      //diagprint(F("ringPin seen!\r\n"));
+      }	   
+   }
    
    return ret;
 }

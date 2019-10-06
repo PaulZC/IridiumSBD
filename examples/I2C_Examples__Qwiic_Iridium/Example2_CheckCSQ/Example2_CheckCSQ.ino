@@ -131,7 +131,7 @@ void setup()
     Serial.println(F("Checking again in 10 seconds..."));
     delay(10000);
   }
-  Serial.print(F("Network is available!"));
+  Serial.println(F("Network is available!"));
   
   // Power down the modem
   Serial.println(F("Putting the 9603N to sleep."));
