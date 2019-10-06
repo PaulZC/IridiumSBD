@@ -40,7 +40,7 @@ allowing the library to put the RockBLOCK into a low power "sleep" state when it
 
 ## I2C Interfacing
 
-Connections to the Qwiic Iridium are made by SparkFun's standard 4-pin Qwiic connector. The four pins are:
+Connections to the Qwiic Iridium are made via SparkFun's standard 4-pin Qwiic connector. The four pins are:
 
 | Pin | Signal | Usual Wire Color |
 | --- | --- | --- |
@@ -272,6 +272,7 @@ if (modem.isConnected()) // Check that the Qwiic Iridium is connected
   modem.sleep(); // Put the modem to sleep
   modem.enable9603Npower(false); // Disable power for the 9603N
   modem.enableSuperCapCharger(false); // Disable the super capacitor charger
+  modem.enable841lowPower(true); // Enable the ATtiny841's low power mode (optional)
 }
 ```
 
@@ -279,7 +280,7 @@ See below for a full description of each method.
 
 ## Qwiic Iridium (I2C) Pass Thru
 
-If you want to communicated directly with the transceiver, so you can explore the AT command set manually, this is trivial when using serial. For the Qwiic Iridium, two new methods
+If you want to communicate directly with the transceiver, so you can explore the AT command set manually, this is trivial when using serial. For the Qwiic Iridium, two new methods
 allow you to parcel up your commands, send them to the transceiver via I2C, and unparcel the replies:
 - **passThruI2Cread** allows you to read serial data directly from the 9603N without going through the higher level library methods.
 - **passThruI2Cwrite** allows you to write directly to the transceiver as if you were connected via serial.
@@ -642,6 +643,7 @@ bool checkSuperCapCharger()
 
 Notes:
 - Returns **true** when the capacitors are >= 94% charged.
+- If the super capacitor charger is disabled, this method will return **true** (due to the PGOOD pin being an open collector). Ensure the charger is enabled before using this method.
 
 ---
 ```
