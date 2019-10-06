@@ -52,7 +52,7 @@ There are new serial and I2C examples for _getIMEI_.
 
 Also included is a correction for Issue [#12 weak diagnostics](https://github.com/mikalhart/IridiumSBD/issues/12).
 
-Also included a fix to let the serial Ring example work properly.
+Also includes a fix to let the serial Ring example work properly.
 
 ## License
 

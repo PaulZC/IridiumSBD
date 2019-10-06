@@ -506,11 +506,11 @@ bool isAsleep()
 
 ---
 ```
-bool isRingAsserted() 
+bool hasRingAsserted() 
 ```
  
-- Description: indicates whether the RockBLOCK's RING line is asserted  
-- Returns: **true** if RING is asserted 
+- Description: indicates whether the RockBLOCK's RING line has asserted  
+- Returns: **true** if RING has asserted 
 - Parameter: **None**. 
 
 ---
