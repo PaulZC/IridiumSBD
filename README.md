@@ -1,9 +1,9 @@
 # IridiumSBD Arduino Library
 
 The Iridium 9602 and 9603N are fascinating communications modules that give devices like Arduino or Raspberry Pi&trade; access to the Iridium satellite network.
-This is a big deal, because it means that your application can now easily and inexpensively communicate from any point on the surface of the globe,
-from the heart of the Amazon to the Siberian tundra.
-This library, IridiumSBD, uses Iridium's SBD ("Short Burst Data") protocol to send and receive short messages to/from the Iridium hub.
+This is a big deal, because it means that your application can now easily and inexpensively communicate from any point on or above the globe,
+from the heart of the Amazon to the Siberian tundra, from the Arctic to the Antarctic.
+This library, **IridiumSBD**, uses Iridium's **SBD** ("Short Burst Data") protocol to send and receive short messages to/from the Iridium hub.
 SBD is a "text message"-like technology that supports the transmission of text or binary messages up to a certain maximum size (270 bytes received, 340 bytes transmitted).
 
 Breakout boards for the 9602 and 9603N are available in different formats. [Rock 7 Mobile](http://rock7mobile.com) provide the original 9602-based
@@ -16,7 +16,7 @@ A full set of [examples](https://github.com/PaulZC/IridiumSBD/tree/master/exampl
 
 ## Documentation
 
-You can documentation for the library in the [documentation folder](https://github.com/PaulZC/IridiumSBD/tree/master/documentation)
+You can find documentation for the library in the [documentation folder](https://github.com/PaulZC/IridiumSBD/tree/master/documentation)
 
 ## History
 
@@ -34,10 +34,10 @@ This closes Issues [#10](https://github.com/mikalhart/IridiumSBD/issues/10) and 
 - _clearBuffers(ISBD_CLEAR_MT)_ will clear the MT buffer
 - _clearBuffers(ISBD_CLEAR_BOTH)_ will clear both buffers
 
-The library also includes Pull Requests [#14](https://github.com/mikalhart/IridiumSBD/pull/14) and [#21](https://github.com/mikalhart/IridiumSBD/pull/21).
+The library also includes Pull Requests [#14 Get IMEI](https://github.com/mikalhart/IridiumSBD/pull/14) and [#21 header import guards](https://github.com/mikalhart/IridiumSBD/pull/21).
 There are new serial and I2C examples for _getIMEI_.
 
-Also included is the correction for Issue [#12](https://github.com/mikalhart/IridiumSBD/issues/12).
+Also included is a correction for Issue [#12 weak diagnostics](https://github.com/mikalhart/IridiumSBD/issues/12).
 
 ## License
 

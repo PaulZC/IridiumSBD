@@ -5,8 +5,8 @@ Gratefully adapted from [Mikal Hart's documentation](https://github.com/mikalhar
 ## Overview
 
 The Iridium 9602 and 9603N are fascinating communications modules that give devices like Arduino or Raspberry Pi&trade; access to the Iridium satellite network.
-This is a big deal, because it means that your application can now easily and inexpensively communicate from any point on the surface of the globe,
-from the heart of the Amazon to the Siberian tundra.
+This is a big deal, because it means that your application can now easily and inexpensively communicate from any point on or above the globe,
+from the heart of the Amazon to the Siberian tundra, from the Arctic to the Antarctic.
 This library, **IridiumSBD**, uses Iridium's **SBD** ("Short Burst Data") protocol to send and receive short messages to/from the Iridium hub.
 SBD is a "text message"-like technology that supports the transmission of text or binary messages up to a certain maximum size (270 bytes received, 340 bytes transmitted).
 
@@ -40,9 +40,17 @@ allowing the library to put the RockBLOCK into a low power "sleep" state when it
 
 ## I2C Interfacing
 
-Connections to the Qwiic Iridium are made by SparkFun's standard 4-pin Qwiic connector. The four wires are: 3.3V Power, GND, SCL and SDA.
+Connections to the Qwiic Iridium are made by SparkFun's standard 4-pin Qwiic connector. The four pins are:
 
-The Qwiic Iridium has a default I2C address of 0x63, but the user does not actually need to know this as all I2C communication can be done transparently through the library.
+| Pin | Signal | Usual Wire Color |
+| --- | --- | --- |
+| 1 | GND / 0V | Black |
+| 2 | **3.3V** Power | Red |
+| 3 | I2C Data SDA | Blue |
+| 4 | I2C Clock SCL | Yellow |
+
+The Qwiic Iridium has a default I2C address of 0x63; all I2C communication is done transparently through the library.
+If the I2C address has been changed, you can use the new value when calling the constructor.
 
 Access to the 9603N's Ring Indicator and Network Available pins is also done through the library.
 
@@ -133,7 +141,7 @@ void setup()
 To begin using the library with the I2C interface, create an **IridiumSBD** object binding the object to Wire instead of serial:
 
 ```
-IridiumSBD(TwoWire &wirePort);
+IridiumSBD(TwoWire &wirePort = Wire, uint8_t deviceAddress = 0x63);
 ```
 
 Example startup:
@@ -238,6 +246,50 @@ do
 
 Note that **getWaitingMessageCount** is only valid after a successful send/receive operation.
 
+## Qwiic Iridium (I2C) Power Control
+
+Like the RockBLOCK, power for the 9603N transceiver on the Qwiic Iridium is provided by super capacitors. The correct power sequence is:
+- Enable the super capacitor charger
+- Wait for the capacitors to charge
+- Enable power for the 9603N
+- begin() the modem
+- Send/receive message(s)
+- sleep() the modem
+- Disable 9603N power
+- Disable the super capacitor charger
+- Place the Qwiic Iridium's ATtiny841 into low power mode (optional)
+
+The library contains a full set of methods to control the power and check the status of the Qwiic Iridium. In their most condensed form, the methods should be called as follows:
+
+```
+if (modem.isConnected()) // Check that the Qwiic Iridium is connected
+{
+  modem.enableSuperCapCharger(true); // Enable the super capacitor charger
+  while (!modem.checkSuperCapCharger()) ; // Wait for the capacitors to charge
+  modem.enable9603Npower(true); // Enable power for the 9603N
+  modem.begin(); // Wake up the modem
+  modem.sendSBDText("Hello, world!"); // Send a message
+  modem.sleep(); // Put the modem to sleep
+  modem.enable9603Npower(false); // Disable power for the 9603N
+  modem.enableSuperCapCharger(false); // Disable the super capacitor charger
+}
+```
+
+See below for a full description of each method.
+
+## Qwiic Iridium (I2C) Pass Thru
+
+If you want to communicated directly with the transceiver, so you can explore the AT command set manually, this is trivial when using serial. For the Qwiic Iridium, two new methods
+allow you to parcel up your commands, send them to the transceiver via I2C, and unparcel the replies:
+- **passThruI2Cread** allows you to read serial data directly from the 9603N without going through the higher level library methods.
+- **passThruI2Cwrite** allows you to write directly to the transceiver as if you were connected via serial.
+
+[Example 9](https://github.com/PaulZC/IridiumSBD/blob/master/examples/I2C_Examples__Qwiic_Iridium/Example9_PassThru/Example9_PassThru.ino) makes use of these methods.
+
+These methods will return a ISBD_REENTRANT error if you attempt to call them while another method is in progress.
+
+See below for a full description of each method.
+
 ## Erratum Workaround
 
 In May, 2013, Iridium identified a potential problem that could cause a satellite modem like the RockBLOCK to lock up unexpectedly. This issue only affects devices with firmware older
@@ -272,8 +324,9 @@ Many **IridiumSBD** methods return an integer error status code, with ISBD_SUCCE
   
 ## IridiumSBD Interface 
 
+---
 ### Constructor (Serial)
-
+---
 ```
 IridiumSBD(Stream &stream, int sleepPinNo = -1, int ringPinNo = -1) 
 ```
@@ -283,10 +336,12 @@ IridiumSBD(Stream &stream, int sleepPinNo = -1, int ringPinNo = -1)
 - Parameter: **stream** - The serial port that the RockBLOCK is connected to. 
 - Parameter: **sleepPin** - The number of the Arduino pin connected to the RockBLOCK SLEEP line. 
  
-Note: Connecting and using the sleepPin is recommended for battery-based solutions. Use **sleep()** to put the RockBLOCK into a low-power state, and **begin()** to wake it back up. 
- 
-### Constructor (I2C)
+Notes:
+- Connecting and using the sleepPin is recommended for battery-based solutions. Use **sleep()** to put the RockBLOCK into a low-power state, and **begin()** to wake it back up. 
 
+---
+### Constructor (I2C)
+---
 ```
 IridiumSBD(TwoWire &wirePort = Wire, uint8_t deviceAddress = 0x63)
 ```
@@ -295,9 +350,13 @@ IridiumSBD(TwoWire &wirePort = Wire, uint8_t deviceAddress = 0x63)
 - Returns: N/A 
 - Parameter: **wirePort** - The I2C (Wire) port that the Qwiic Iridium is connected to. 
 - Parameter: **deviceAddress** - The address used by the ATtiny841 for I2C communication. 
- 
-### Startup
 
+Notes:
+- Access to the sleepPin is provided internally through the library. 
+
+---
+### Startup
+---
 ```
 int begin() 
 ```
@@ -312,8 +371,9 @@ Notes:
 - If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
 - This function should be called before any transmit/receive operation 
 
+---
 ### Data transmission 
-
+---
 ```
 int sendSBDText(const char *message) 
 ```
@@ -327,7 +387,8 @@ Notes:
 - The maximum size of a transmitted packet (including header and checksum) is 340 bytes. 
 - If there are any messages in the RX queue, the first of these is discarded when this function is called. 
 - If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
- 
+
+---
 ```
 int sendSBDBinary(const uint8_t *txData, size_t txDataSize) 
 ```
@@ -342,7 +403,8 @@ Notes:
 - The maximum size of a transmitted packet (including header and checksum) is 340 bytes. 
 - If there are any messages in the RX queue, the first of these is discarded when this function is called. 
 - If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
- 
+
+---
 ```
 int sendReceiveSBDText(const char *message, uint8_t *rxBuffer, size_t &rxBufferSize) 
 ```
@@ -360,6 +422,7 @@ Notes:
 - If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
 - The library returns the size of the buffer actually received into rxBufferSize. This value should always be set to the actual buffer size before calling sendReceiveSBDText. 
 
+---
 ```
 int sendReceiveSBDBinary(const uint8_t *txData, size_t txDataSize, uint8_t *rxBuffer, size_t &rxBufferSize) 
 ```
@@ -377,9 +440,10 @@ Notes:
 - The maximum size of a received packet is 270 bytes. 
 - If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
 - The library returns the size of the buffer actually received into rxBufferSize. This value should always be set to the actual buffer size before calling sendReceiveSBDText. 
- 
-### Utilities 
 
+---
+### Utilities 
+---
 ```
 int getSignalQuality(int &quality) 
 ```
@@ -391,7 +455,8 @@ int getSignalQuality(int &quality)
 Notes:
 - If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
 - This method is mostly informational.  It is not strictly necessary for the user application to verify that a signal exists before calling one of the transmission functions, as these check signal quality themselves. 
- 
+
+---
 ```
 int getWaitingMessageCount() 
 ```
@@ -403,6 +468,7 @@ int getWaitingMessageCount()
 Notes:
 - This number is only valid if one of the send/receive methods has previously completed successfully. If not, the value returned from **getWaitingMessageCount** is -1 ("unknown"). 
 
+---
 ```
 int getSystemTime(struct tm &tm) 
 ```
@@ -417,6 +483,7 @@ Notes:
 - Note that the tm_mon field is zero-based, i.e. January is 0 
 - This function uses AT-MSSTM, which might report "Network not found". In this case, the function returns ISBD_NO_NETWORK. 
 
+---
 ```
 int sleep() 
 ```
@@ -430,6 +497,7 @@ Notes:
 - Wake the device by calling **begin()**. 
 - If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
 
+---
 ```
 bool isAsleep() 
 ```
@@ -437,7 +505,8 @@ bool isAsleep()
 - Description: indicates whether the RockBLOCK is in low-power standby mode. 
 - Returns: **true** if the device is asleep 
 - Parameter: **None**. 
- 
+
+---
 ```
 bool isRingAsserted() 
 ```
@@ -446,6 +515,7 @@ bool isRingAsserted()
 - Returns: **true** if RING is asserted 
 - Parameter: **None**. 
 
+---
 ```
 int getFirmwareVersion(char *version, size_t bufferSize) 
 ```
@@ -459,6 +529,7 @@ Notes:
 - This method returns the version string in the version buffer. 
 - bufferSize should be at least 8 to contain strings like TA13001 with the 0 terminator. 
 
+---
 ```
 void setPowerProfile(POWERPROFILE profile) 
 ```
@@ -470,6 +541,7 @@ void setPowerProfile(POWERPROFILE profile)
 Notes:
 - This method defines the internal delays between retransmission.  Low current applications may require longer delays. 
 
+---
 ```
 void adjustATTimeout(int seconds) 
 ```
@@ -482,6 +554,7 @@ Notes:
 - The Iridium 9602 frequently does not respond immediately to an AT command.  This value indicates the number of seconds IridiumSBD should wait before giving up. 
 - It is not expected that this method will be commonly used. 
 
+---
 ```
 void adjustSendReceiveTimeout(int seconds) 
 ```
@@ -494,6 +567,7 @@ Notes:
 - This setting indicates how long IridiumSBD will continue to attempt to communicate with the satellite array before giving up. The default value of 300 seconds (5 minutes)
 seems to be a reasonable choice for many applications, but higher values might be more appropriate for others. 
 
+---
 ```
 void useMSSTMWorkaround(bool useWorkaround) 
 ```
@@ -505,6 +579,7 @@ void useMSSTMWorkaround(bool useWorkaround)
 Notes:
 - Affected firmware versions include TA11002 and TA12003. If your firmware version is later than these, you can save some time by setting this value to false. 
 
+---
 ```
 void enableRingAlerts(bool enable) 
 ```
@@ -517,38 +592,177 @@ Notes:
 - This method uses the Iridium AT+SBDMTA to enable or disable alerts. 
 - This method take effect at the next call to **begin()**, so typically you would call this before you start your device.  
 - RING alerts are enabled by default if the library user has specified a RING pin for the IridiumSBD constructor.  Otherwise they are disabled by default.  Use this method to override that as needed. 
- 
+
+---
 ```
 int getIMEI(char *IMEI, size_t bufferSize)
 ```
 
 - Description: Returns a string representing the IMEI. 
 - Returns: ISBD_SUCCESS if successful, a non-zero code otherwise. 
-- Parameter: **IMEI** - the buffer to contain the IMEI string 
-- Parameter: **bufferSize** - the size of the buffer to be filled 
+- Parameter: **IMEI** - the buffer to contain the IMEI string.
+- Parameter: **bufferSize** - the size of the buffer to be filled.
  
 Notes:
 - This method returns the IMEI string in the IMEI buffer. 
 - bufferSize should be at least 16 to contain the 15 digit IMEI with the 0 terminator. 
 
+---
 ```
-int clearBuffers(int buffers = ISBD_CLEAR_MO);
+int clearBuffers(int buffers = ISBD_CLEAR_MO)
 ```
 
 - Description: Clears the Mobile Originated (MO), Mobile Terminated (MT) or Both message buffers. 
 - Returns: ISBD_SUCCESS if successful, a non-zero code otherwise. 
-- Parameter: **buffers** - the buffer(s) to be cleared
+- Parameter: **buffers** - the buffer(s) to be cleared.
  
 Notes:
-- Defaults to clearing the MO buffer (**ISBD_CLEAR_MO**)
-- **buffers** can also be set to: **ISBD_CLEAR_MT** to clear the MT buffer; or **ISBD_CLEAR_BOTH** to clear both MO and MT buffers
+- Defaults to clearing the MO buffer (**ISBD_CLEAR_MO**).
+- **buffers** can also be set to: **ISBD_CLEAR_MT** to clear the MT buffer; or **ISBD_CLEAR_BOTH** to clear both MO and MT buffers.
 
+---
 ### Qwiic Iridium (I2C) Methods
+---
+```
+void enableSuperCapCharger(bool enable)
+```
 
-Coming soon...
+- Description: Enables or disables the Qwiic Iridium's super capacitor charger.
+- Returns: None.
+- Parameter: **enable** - **true** will enable the charger, **false** will disable it.
 
+---
+```
+bool checkSuperCapCharger()
+```
+
+- Description: Checks the status of the super capacitors.
+- Returns: **true** if the capacitors are charged, **false** if not.
+- Parameter: None.
+
+Notes:
+- Returns **true** when the capacitors are >= 94% charged.
+
+---
+```
+void enable9603Npower(bool enable)
+```
+
+- Description: Enables power for the 9603N from the super capacitors.
+- Returns: None.
+- Parameter: **enable** - **true** will enable 9603N power, **false** will disable it.
+
+Notes:
+- Ensure the super capacitors are charged before enabling 9603N power. Use **checkSuperCapCharger** to confirm.
+
+---
+```
+void enable9603(bool enable)
+```
+
+- Description: Enables the 9603N via its SLEEP (ON/OFF) pin.
+- Returns: None.
+- Parameter: **enable** - **true** will enable the 9603N, **false** will place it in sleep mode.
+
+Notes:
+- The user should not need to call this function. It should probably be private. The **begin** and **sleep** methods will automatically set the pin to the correct state.
+
+---
+```
+bool checkRingIndicator()
+```
+
+- Description: Checks if the Qwiic Iridium has seen a Ring Indication.
+- Returns: **true** if a ring indication has been seen, **false** if not.
+- Parameter: None.
+
+Notes:
+- The user should not need to call this function. It should probably be private. The **hasRingAsserted** method will automatically call **checkRingIndicator** when using I2C.
+- The Qwiic Iridium uses an interrupt to detect when the ring indicator signal goes low. Although the **hasRingAsserted** method will clear the flag, the flag can be cleared
+manually using **clearRingIndicator**. This can be useful as the flag can be re-set by a second ring indication which the user may want to ignore.
+
+---
+```
+void clearRingIndicator()
+```
+
+- Description: Clears the Qwiic Iridium Ring Indicator flag.
+- Returns: None.
+- Parameter: None.
+
+Notes:
+- The Qwiic Iridium uses an interrupt to detect when the ring indicator signal goes low. Although the **hasRingAsserted** method will clear the flag, the flag can be cleared
+manually using **clearRingIndicator**. This can be useful as the flag can be re-set by a second ring indication which the user may want to ignore.
+
+---
+```
+bool checkNetworkAvailable()
+```
+
+- Description: Checks the status of the 9603N's Network Available signal.
+- Returns: **true** if the network is available, **false** if not.
+- Parameter: None.
+
+Notes:
+- Network Available is true when the 9603N is able to receive the ring channel. It can take seconds, or sometimes up to two minutes, for NA to become true depending on the history of satellite visibility.
+- The send message methods will automatically re-try if the network is not available. The user does not need to call **checkNetworkAvailable** before sending a message.
+
+---
+```
+void enable841lowPower(bool enable)
+```
+
+- Description: Enables the Qwiic Iridium ATtiny841's low power mode to save power.
+- Returns: None.
+- Parameter: **enable** - **true** will enable the low power mode, **false** will disable it.
+
+Notes:
+- The Qwiic Iridium's current draw can be reduced to approximately 1 microamp when in low power mode, if the 9603N, super capacitor charger and power LED are disabled.
+- The ATtiny841 will automatically wake up on I2C or serial activity or if a ring indicator interrupt is received. It is safe to leave the low power mode permanently enabled.
+
+---
+```
+bool isConnected()
+```
+
+- Description: Checks if the Qwiic Iridium is connected.
+- Returns: **true** if the Qwiic Iridium is connected, **false** if not.
+- Parameter: None.
+
+Notes:
+- It can be useful to call this method to confirm the Qwiic Iridium is connected when starting an application. **checkSuperCapCharger** will never return **true** if the Qwiic Iridium is not connected.
+
+---
+```
+int passThruI2Cwrite(uint8_t *txBuffer, size_t &txBufferSize)
+```
+
+- Description: Passes the binary data in **txBuffer** directly to the 9603N's serial pin without going through the higher level library methods.
+- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise. 
+- Parameter: **txBuffer** - The buffer containing the binary data to be transmitted. 
+- Parameter: **txBufferSize** - The size (length) of the _binary data_ in bytes (not the size of the buffer itself).
+
+Notes:
+- This method will return ISBD_REENTRANT if another method is already in progress and ISBD_SERIAL_FAILURE if the serial constructor is in use.
+
+---
+```
+int passThruI2Cread(uint8_t *rxBuffer, size_t &rxBufferSize, size_t &numBytes)
+```
+
+- Description: Passes the binary data from the 9603N's serial pin directly to the user, via **rxBuffer**, without going through the higher level library methods.
+- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise. 
+- Parameter: **rxBuffer** - The buffer to receive the serial data from the 9603N. 
+- Parameter: **rxBufferSize** - The size (length) of the _buffer_ in bytes. 
+- Parameter: **numBytes** - The number of bytes returned in the buffer (>= 0, <= rxBufferSize).
+
+Notes:
+- This method will return ISBD_REENTRANT if another method is already in progress and ISBD_SERIAL_FAILURE if the serial constructor is in use.
+- The method uses the **rxBufferSize** to prevent overflowing the buffer. If the 9603N returns more serial data than the buffer can hold, a ISBD_RX_OVERFLOW error is returned.
+
+---
 ### Callbacks (optional)
- 
+---
 ```
 bool ISBDCallback() 
 ```
@@ -560,7 +774,8 @@ bool ISBDCallback()
 Notes:
 - If this function is not provided the library methods will appear to block. 
 - This is not a library method, but an optional user-provided callback function. 
- 
+
+---
 ```
 void ISBDConsoleCallback(IridiumSBD *device, char c) 
 ```
@@ -574,6 +789,7 @@ Notes:
 - Typical usage is to write c to a console for diagnostics. 
 - This is not a library method, but an optional user-provided callback function. 
 
+---
 ```
 void ISBDDiagsCallback(IridiumSBD *device, char c) 
 ```
@@ -586,6 +802,7 @@ void ISBDDiagsCallback(IridiumSBD *device, char c)
 Notes:
 - Typical usage is to write **c** to a console for diagnostics 
 - This is not a library method, but an optional user-provided callback function. 
+---
 
 ## License 
 
@@ -598,4 +815,4 @@ This library is distributed under the terms of the GNU LGPL license.
 | 1.0 | 2013 | Mikal Hart | Initial draft submitted to Rock 7 for review |
 | 1.1 | 2014 | Mikal Hart | Added text about the AT-MSSTM erratum/workaround and changing the minimum required signal quality. Also documented related new methods **setMinimumSignalQuality** and **useMSSTMWorkaround()**. | 
 | 2.0 | 21 October 2017 | Mikal Hart | Several API revisions. Removed **setMinimumSignalQuality** (no longer used), added support for RING monitoring (**enableRingAlerts** method, and new RING alert pin on constructor), and changed the way diagnostics are done by replacing the **attachConsole** and **attachDiags** methods with user-supplied callbacks **ISBDConsoleCallback** and **ISBDDiagsCallback**. Added getSystemTime and getFirmwareVersion utility functions.  Add explanation that MSSTM workaround is no longer enabled by default if firmware is sufficiently new (TA13001 or newer). |
-| 3.0 | October 2019 | Paul Clark | Added I2C support for the Qwiic Iridium. Restructured the examples. Added the feature requests (**getIMEI** and **clearBuffers**) and corrected the issues identified in version 2.0 |
+| 3.0 | October 2019 | Paul Clark | Added I2C support for the Qwiic Iridium. Restructured the examples. Converted Mikal's documentation to markdown format. Added the feature requests (**getIMEI** and **clearBuffers**) and corrected the issues identified with version 2.0 |
