@@ -265,6 +265,12 @@ int IridiumSBD::getFirmwareVersion(char *version, size_t bufferSize)
 
 void IridiumSBD::enableSuperCapCharger(bool enable)
 {
+  if (useSerial) // Do nothing if we are using serial (the user will have to enable the charger manually)
+  {
+    diagprint(F("enableSuperCapCharger is only valid when using I2C on the Qwiic Iridium\r\n"));
+    return;
+  }
+
   // Enable/disable the supercapacitor charger by pulling its SHDN pin high/low
   check9603pins(); // Update IO_REGISTER
   if (enable)
@@ -280,6 +286,12 @@ void IridiumSBD::enableSuperCapCharger(bool enable)
 
 bool IridiumSBD::checkSuperCapCharger()
 {
+  if (useSerial) // Do nothing if we are using serial (the user will have to check PGOOD manually)
+  {
+    diagprint(F("checkSuperCapCharger is only valid when using I2C on the Qwiic Iridium\r\n"));
+    return(false);
+  }
+
   // Check the status of the supercapacitor charger PGOOD pin
   check9603pins(); // Update IO_REGISTER
   if (IO_REGISTER &= IO_PGOOD) // If the PGOOD bit is set, return true
@@ -294,6 +306,12 @@ bool IridiumSBD::checkSuperCapCharger()
 
 void IridiumSBD::enable9603Npower(bool enable)
 {
+  if (useSerial) // Do nothing if we are using serial (the user will have to enable the 9603N power manually)
+  {
+    diagprint(F("enable9603Npower is only valid when using I2C on the Qwiic Iridium\r\n"));
+    return;
+  }
+
   // Enable/disable power to the 9603N by pulling PWR_EN high/low
   check9603pins(); // Update IO_REGISTER
   if (enable)
@@ -309,6 +327,12 @@ void IridiumSBD::enable9603Npower(bool enable)
 
 void IridiumSBD::enable9603(bool enable)
 {
+  if (useSerial) // Do nothing if we are using serial (the user will have to enable the 9603N manually)
+  {
+    diagprint(F("enable9603 is only valid when using I2C on the Qwiic Iridium\r\n"));
+    return;
+  }
+
   // Enable/disable the 9603 by pulling ON_OFF high/low
   check9603pins(); // Update IO_REGISTER
   if (enable)
@@ -324,6 +348,12 @@ void IridiumSBD::enable9603(bool enable)
 
 void IridiumSBD::enable841lowPower(bool enable)
 {
+  if (useSerial) // Do nothing if we are using serial
+  {
+    diagprint(F("enable841lowPower is only valid when using I2C on the Qwiic Iridium\r\n"));
+    return;
+  }
+
 	// Enable/disable the Qwiic Iridium ATtiny841's low power mode
 	check9603pins(); // Update IO_REGISTER
 	if (enable)
@@ -339,6 +369,12 @@ void IridiumSBD::enable841lowPower(bool enable)
 
 bool IridiumSBD::checkRingIndicator()
 {
+  if (useSerial) // Do nothing if we are using serial (the user will have to use hasRingAsserted instead)
+  {
+    diagprint(F("checkRingIndicator is only valid when using I2C on the Qwiic Iridium\r\n"));
+    return(false);
+  }
+
   // Check the status of the 9603 Ring Indicator flag
   check9603pins(); // Update IO_REGISTER
   if (IO_REGISTER &= IO_RI) // If the RI bit is set, return true
@@ -353,6 +389,12 @@ bool IridiumSBD::checkRingIndicator()
 
 void IridiumSBD::clearRingIndicator()
 {
+  if (useSerial) // Do nothing if we are using serial
+  {
+    diagprint(F("clearRingIndicator is only valid when using I2C on the Qwiic Iridium\r\n"));
+    return;
+  }
+
   // Clear the 9603 RI flag
   check9603pins(); // Update IO_REGISTER
   IO_REGISTER &= ~IO_RI; // Clear the RI bit
@@ -362,6 +404,12 @@ void IridiumSBD::clearRingIndicator()
 
 bool IridiumSBD::checkNetworkAvailable()
 {
+  if (useSerial) // Do nothing if we are using serial
+  {
+    diagprint(F("checkNetworkAvailable is only valid when using I2C on the Qwiic Iridium\r\n"));
+    return(false);
+  }
+
   // Check the status of the 9603 Network Available pin
   check9603pins(); // Update IO_REGISTER
   if (IO_REGISTER &= IO_NA) // If the NA bit is set, return true
@@ -420,6 +468,12 @@ int IridiumSBD::passThruI2Cread(uint8_t *rxBuffer, size_t &rxBufferSize, size_t 
 // On return, numBytes contains the number of bytes written into the rxBuffer (<= rxBufferSize)
 // If there was too much data for the rxBuffer, the function will return an ISBD_RX_OVERFLOW error
 {
+  if (useSerial) // Do nothing if we are using serial
+  {
+    diagprint(F("passThruI2Cread is only valid when using I2C on the Qwiic Iridium\r\n"));
+    return(0);
+  }
+
 	if (this->reentrant)
 	return ISBD_REENTRANT;
 
@@ -434,6 +488,12 @@ int IridiumSBD::passThruI2Cwrite(uint8_t *txBuffer, size_t &txBufferSize)
 // txBuffer is a pointer to the transmit buffer which contains the serial data to be written
 // txBufferSize is the number of bytes to be written
 {
+  if (useSerial) // Do nothing if we are using serial
+  {
+    diagprint(F("passThruI2Cwrite is only valid when using I2C on the Qwiic Iridium\r\n"));
+    return(0);
+  }
+
 	if (this->reentrant)
 	return ISBD_REENTRANT;
 
