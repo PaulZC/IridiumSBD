@@ -30,7 +30,7 @@ You can find documentation for the library in the [documentation folder](https:/
 - [RockBLOCK 9603](http://www.rock7mobile.com/products-rockblock-9603) - The newer, more compact RockBLOCK based on the 9603N.
 - [WRL-13745](https://www.sparkfun.com/products/13745) - The original RockBLOCK, also available from your friends at SparkFun.
 - [WRL-14498](https://www.sparkfun.com/products/14498) - The RockBLOCK 9603, also available from your friends at SparkFun.
-- [Qwiic Iridium 9603N](https://github.com/PaulZC/Qwiic_Iridium_9603N) - Provides I2C support instead of serial, allowing you to add Iridium SBD communication to any Qwiic or I2C project.
+- [Qwiic Iridium 9603N](https://www.sparkfun.com/products/15780) - Provides I2C support instead of serial, allowing you to add Iridium SBD communication to any Qwiic or I2C project.
 
 ## History
 
