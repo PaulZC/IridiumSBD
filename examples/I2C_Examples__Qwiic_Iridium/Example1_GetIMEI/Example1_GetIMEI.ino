@@ -15,7 +15,7 @@
  */
 
 #define IridiumWire Wire
-#define DIAGNOSTICS false // Change this to enable diagnostics
+#define DIAGNOSTICS true // Change this to enable diagnostics
 
 // Declare the IridiumSBD object using default I2C address
 IridiumSBD modem(IridiumWire);
@@ -61,6 +61,14 @@ void setup()
     delay(1000);
   }
   Serial.println(F("Supercapacitors charged!"));
+
+  //NEW STUFF!
+  //empty the serial buffer
+  while(Serial.available() > 0) Serial.read();
+
+  //wait for the user to press any key before beginning
+  Serial.println(F("Press any key to continue."));
+  while(Serial.available() == 0);
 
   // Enable power for the 9603N
   Serial.println(F("Enabling 9603N power..."));
