@@ -303,8 +303,4 @@ private:
    int internalPassThruI2Cwrite(uint8_t *txBuffer, size_t &txBufferSize);
 };
 
-extern bool ISBDCallback() __attribute__((weak));
-extern void ISBDConsoleCallback(IridiumSBD *device, char c) __attribute__((weak));
-extern void ISBDDiagsCallback(IridiumSBD *device, char c) __attribute__((weak));
-
 #endif

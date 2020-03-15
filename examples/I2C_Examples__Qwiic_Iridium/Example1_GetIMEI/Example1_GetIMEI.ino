@@ -15,7 +15,7 @@
  */
 
 #define IridiumWire Wire
-#define DIAGNOSTICS true // Change this to enable diagnostics
+#define DIAGNOSTICS true // Change this to disable diagnostics
 
 // Declare the IridiumSBD object using default I2C address
 IridiumSBD modem(IridiumWire);
@@ -62,7 +62,6 @@ void setup()
   }
   Serial.println(F("Supercapacitors charged!"));
 
-  //NEW STUFF!
   //empty the serial buffer
   while(Serial.available() > 0) Serial.read();
 
@@ -124,16 +123,14 @@ void loop()
 {
 }
 
+#if DIAGNOSTICS
 void ISBDConsoleCallback(IridiumSBD *device, char c)
 {
-#if DIAGNOSTICS
   Serial.write(c);
-#endif
 }
 
 void ISBDDiagsCallback(IridiumSBD *device, char c)
 {
-#if DIAGNOSTICS
   Serial.write(c);
-#endif
 }
+#endif

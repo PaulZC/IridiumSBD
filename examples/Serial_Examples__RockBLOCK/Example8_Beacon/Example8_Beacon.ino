@@ -134,16 +134,14 @@ bool ISBDCallback()
   return true;
 }
 
+#if DIAGNOSTICS
 void ISBDConsoleCallback(IridiumSBD *device, char c)
 {
-#if DIAGNOSTICS
   Serial.write(c);
-#endif
 }
 
 void ISBDDiagsCallback(IridiumSBD *device, char c)
 {
-#if DIAGNOSTICS
   Serial.write(c);
-#endif
 }
+#endif

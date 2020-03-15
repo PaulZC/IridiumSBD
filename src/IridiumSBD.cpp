@@ -25,6 +25,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <time.h>
 #include "IridiumSBD.h"
 
+bool ISBDCallback() __attribute__((weak));
+void ISBDConsoleCallback(IridiumSBD *device, char c) __attribute__((weak));
+void ISBDDiagsCallback(IridiumSBD *device, char c) __attribute__((weak));
+
+bool ISBDCallback() { return true; }
+void ISBDConsoleCallback(IridiumSBD *device, char c) { }
+void ISBDDiagsCallback(IridiumSBD *device, char c) { }
+
 // Power on the RockBLOCK or return from sleep
 int IridiumSBD::begin()
 {
