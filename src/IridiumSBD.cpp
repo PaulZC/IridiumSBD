@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <time.h>
 #include "IridiumSBD.h"
 
+
 bool ISBDCallback() __attribute__((weak));
 void ISBDConsoleCallback(IridiumSBD *device, char c) __attribute__((weak));
 void ISBDDiagsCallback(IridiumSBD *device, char c) __attribute__((weak));
@@ -155,7 +156,7 @@ void IridiumSBD::setPowerProfile(POWERPROFILE profile) // 0 = direct connect (de
    }
 }
 
-// Tweak AT timeout 
+// Tweak AT timeout
 void IridiumSBD::adjustATTimeout(int seconds)
 {
    this->atTimeout = seconds;
@@ -167,7 +168,7 @@ void IridiumSBD::adjustSendReceiveTimeout(int seconds)
    this->sendReceiveTimeout = seconds;
 }
 
-void IridiumSBD::useMSSTMWorkaround(bool useWorkAround) // true to use workaround from Iridium Alert 5/7 
+void IridiumSBD::useMSSTMWorkaround(bool useWorkAround) // true to use workaround from Iridium Alert 5/7
 {
    this->msstmWorkaroundRequested = useWorkAround;
 }
@@ -215,9 +216,9 @@ bool IridiumSBD::hasRingAsserted()
       {
 	      ret = true; // Return true
 	      //diagprint(F("ringPin seen!\r\n"));
-      }	   
+      }
    }
-   
+
    return ret;
 }
 
@@ -244,7 +245,7 @@ int IridiumSBD::getSystemTime(struct tm &tm)
    unsigned long ticks_since_epoch = strtoul(msstmResponseBuf, NULL, 16);
 
    /* Strategy: we'll convert to seconds by finding the largest number of integral
-      seconds less than the equivalent ticks_since_epoch. Subtract that away and 
+      seconds less than the equivalent ticks_since_epoch. Subtract that away and
       we'll be left with a small number that won't overflow when we scale by 90/1000.
 
       Many thanks to Scott Weldon for this suggestion.
@@ -463,7 +464,7 @@ boolean IridiumSBD::isConnected()
 		return true;
    }
    else
-   {		
+   {
 		wireport->beginTransmission((uint8_t)deviceaddress);
 		return (wireport->endTransmission() == 0); // Check that the device ack's
    }
@@ -553,10 +554,10 @@ int IridiumSBD::internalBegin()
    }
 
    // The usual initialization sequence
-   FlashString strings[3] = { F("ATE1\r"), F("AT&D0\r"), F("AT&K0\r") };
+   const char *strings[3] = { "ATE1\r", "AT&D0\r", "AT&K0\r" };
    for (int i=0; i<3; ++i)
    {
-      send(strings[i]); 
+      send(strings[i]);
       if (!waitForATResponse())
          return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
    }
@@ -564,12 +565,12 @@ int IridiumSBD::internalBegin()
    // Enable or disable RING alerts as requested by user
    // By default they are on if a RING pin was supplied on constructor
    diagprint(F("Ring alerts are")); diagprint(ringAlertsEnabled ? F("") : F(" NOT")); diagprint(F(" enabled.\r\n"));
-   
+
    if (ringAlertsEnabled) enableRingAlerts(true); // This will clear ringAsserted and the Ring Indicator flag
    else {
 	   if (!this->useSerial) clearRingIndicator(); // If ring alerts are not enabled and using I2C, make sure the Ring Indicator flag is clear
    }
-   
+
    send(ringAlertsEnabled ? F("AT+SBDMTA=1\r") : F("AT+SBDMTA=0\r"));
    if (!waitForATResponse())
       return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
@@ -601,7 +602,7 @@ int IridiumSBD::internalBegin()
 
 int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *txData, size_t txDataSize, uint8_t *rxBuffer, size_t *prxBufferSize)
 {
-   diagprint(F("internalSendReceive\r\n")); 
+   diagprint(F("internalSendReceive\r\n"));
 
    if (this->asleep)
       return ISBD_IS_ASLEEP;
@@ -748,7 +749,7 @@ int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *
             else
             {
                // No data returned
-               if (prxBufferSize) 
+               if (prxBufferSize)
                   *prxBufferSize = 0;
             }
             return ISBD_SUCCESS;
@@ -805,19 +806,19 @@ int IridiumSBD::internalMSSTMWorkaround(bool &okToProceed)
    /*
    According to Iridium 9602 Product Bulletin of 7 May 2013, to overcome a system erratum:
 
-   "Before attempting any of the following commands: +SBDDET, +SBDREG, +SBDI, +SBDIX, +SBDIXA the field application 
+   "Before attempting any of the following commands: +SBDDET, +SBDREG, +SBDI, +SBDIX, +SBDIXA the field application
    should issue the AT command AT-MSSTM to the transceiver and evaluate the response to determine if it is valid or not:
 
    Valid Response: "-MSSTM: XXXXXXXX" where XXXXXXXX is an eight-digit hexadecimal number.
 
    Invalid Response: "-MSSTM: no network service"
 
-   If the response is invalid, the field application should wait and recheck system time until a valid response is 
-   obtained before proceeding. 
+   If the response is invalid, the field application should wait and recheck system time until a valid response is
+   obtained before proceeding.
 
-   This will ensure that the Iridium SBD transceiver has received a valid system time before attempting SBD communication. 
-   The Iridium SBD transceiver will receive the valid system time from the Iridium network when it has a good link to the 
-   satellite. Ensuring that the received signal strength reported in response to AT command +CSQ and +CIER is above 2-3 bars 
+   This will ensure that the Iridium SBD transceiver has received a valid system time before attempting SBD communication.
+   The Iridium SBD transceiver will receive the valid system time from the Iridium network when it has a good link to the
+   satellite. Ensuring that the received signal strength reported in response to AT command +CSQ and +CIER is above 2-3 bars
    before attempting SBD communication will protect against lockout.
    */
    char msstmResponseBuf[24];
@@ -942,10 +943,7 @@ bool IridiumSBD::cancelled()
 	  }
    }
 
-   if (ISBDCallback != NULL)
-      return !ISBDCallback();
-
-   return false;
+   return !ISBDCallback();
 }
 
 int IridiumSBD::doSBDIX(uint16_t &moCode, uint16_t &moMSN, uint16_t &mtCode, uint16_t &mtMSN, uint16_t &mtLen, uint16_t &mtRemaining)
@@ -1075,7 +1073,7 @@ int IridiumSBD::doSBDRB(uint8_t *rxBuffer, size_t *prxBufferSize)
    consoleprint(F("]"));
 
    // Return actual size of returned buffer
-   if (prxBufferSize) 
+   if (prxBufferSize)
       *prxBufferSize = (size_t)size;
 
    // Wait for final OK
@@ -1265,7 +1263,7 @@ void IridiumSBD::diagprint(uint16_t n)
 void IridiumSBD::consoleprint(FlashString str)
 {
    PGM_P p = reinterpret_cast<PGM_P>(str);
-   while (1) 
+   while (1)
    {
       char c = pgm_read_byte(p++);
       if (c == 0) break;
@@ -1425,7 +1423,7 @@ void IridiumSBD::check9603data()
         i2cSerPoke(wireport->read()); // Read and store each byte
       }
     }
-        
+
     lastCheck = millis(); //Put off checking to avoid excessive I2C bus traffic
   }
 }
@@ -1485,7 +1483,7 @@ int IridiumSBD::internalPassThruI2Cread(uint8_t *rxBuffer, size_t &rxBufferSize,
   }
 
   numBytes = (size_t)bytesAvailable; //Store bytesAvailable in numBytes
-  
+
   size_t bufferPtr = 0; // Initialise buffer pointer
 
   //Now read the serial bytes (if any)
@@ -1649,4 +1647,3 @@ int IridiumSBD::internalGetIMEI(char *IMEI, size_t bufferSize)
 
    return ISBD_SUCCESS;
 }
-

@@ -209,7 +209,7 @@ private:
    unsigned long lastCheck = 0; // The time in millis when the I2C bus was last checked (limits I2C traffic)
    const uint8_t I2C_POLLING_WAIT_MS = 5; //Limit checking of new characters to every 5 ms (roughly 10 chars at 19200 baud)
 
-   // State variables  
+   // State variables
    int remainingMessages;
    bool asleep;
    bool reentrant;
@@ -281,7 +281,7 @@ private:
    //Create the IO 'register'
    //A '1' in any of the bits indicates that the pin is ON (not necessarily that it is HIGH!)
    byte IO_REGISTER;
-   
+
    //These are the bit definitions for the IO 'register'
    const uint8_t IO_SHDN    = (1 << 0); // LTC3225 !SHDN : Read / Write
    const uint8_t IO_PWR_EN  = (1 << 1); // 9603N power enable via the P-FET : Read / Write
