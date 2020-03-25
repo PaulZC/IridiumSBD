@@ -1,4 +1,4 @@
-# IridiumSBD Arduino Library
+# Iridium SBD I2C Arduino Library
 
 The Iridium 9602 and 9603N are fascinating communications modules that give devices like Arduino or Raspberry Pi&trade; access to the Iridium satellite network.
 This is a big deal, because it means that your application can now easily and inexpensively communicate from any point on or above the globe,
@@ -6,7 +6,7 @@ from the heart of the Amazon to the Siberian tundra, from the Arctic to the Anta
 This library, **IridiumSBD**, uses Iridium's **SBD** ("Short Burst Data") protocol to send and receive short messages to/from the Iridium hub.
 SBD is a "text message"-like technology that supports the transmission of text or binary messages up to a certain maximum size (270 bytes received, 340 bytes transmitted).
 
-Breakout boards for the 9602 and 9603N are available in different formats. Most of these breakouts use serial (UART) interfacing but I2C (Qwiic) is possible too and this version of
+Breakout boards for the 9602 and 9603N are available in different formats. Most of these breakouts use serial (UART) interfacing but **I2C (Qwiic)** is possible too and this version of
 the library supports both.
 
 Grateful thanks go to:
@@ -30,7 +30,7 @@ You can find documentation for the library in the [documentation folder](https:/
 - [RockBLOCK 9603](http://www.rock7mobile.com/products-rockblock-9603) - The newer, more compact RockBLOCK based on the 9603N.
 - [WRL-13745](https://www.sparkfun.com/products/13745) - The original RockBLOCK, also available from your friends at SparkFun.
 - [WRL-14498](https://www.sparkfun.com/products/14498) - The RockBLOCK 9603, also available from your friends at SparkFun.
-- [Qwiic Iridium 9603N](https://www.sparkfun.com/products/15780) - Provides I2C support instead of serial, allowing you to add Iridium SBD communication to any Qwiic or I2C project.
+- [Qwiic Iridium 9603N](https://www.sparkfun.com/products/16394) - Provides I2C support instead of serial, allowing you to add Iridium SBD communication to any Qwiic or I2C project.
 
 ## History
 
