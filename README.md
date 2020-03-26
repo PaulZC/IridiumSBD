@@ -1,5 +1,9 @@
 # Iridium SBD I2C Arduino Library
 
+- This library can be installed through the Arduino Library Manager: please search for **IridiumSBDi2c**
+
+- _IridiumSBD_ is Mikal's original library which does not (currently) support I2C.
+
 The Iridium 9602 and 9603N are fascinating communications modules that give devices like Arduino or Raspberry Pi&trade; access to the Iridium satellite network.
 This is a big deal, because it means that your application can now easily and inexpensively communicate from any point on or above the globe,
 from the heart of the Amazon to the Siberian tundra, from the Arctic to the Antarctic.
