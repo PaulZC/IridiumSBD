@@ -55,7 +55,7 @@ will be downloaded and displayed in the console. The code checks the length of t
 downloading MT messages until the queue is empty. In the Rock7 Operations message log, you will see these as _\[No payload\]_ Mobile Originated messages.
 
 Rock7 will charge you one message credit for every 50 bytes (or part thereof) of a message sent or received. Sending a NULL message will still use one credit even
-if there is nothing in the MT queue to be downloaded. 
+if there is nothing in the MT queue to be downloaded.
 
 ### Example 7: Ring
 
@@ -72,8 +72,8 @@ will work successfully.
 
 This example demonstrates how to create a beacon or tracker that will transmit your GNSS (GPS) location via Iridium from _anywhere_.
 
-The serial example assumes you have a GNSS receiver connected via serial. It uses [Mikal's TinyGPS++ library](http://arduiniana.org/libraries/tinygpsplus/) to parse the
-NMEA messages and extract your location before transmitting it via Iridium.
+The serial example assumes you have a GNSS receiver connected via serial. It uses [Mikal's TinyGPS++ library](https://github.com/mikalhart/TinyGPSPlus) to parse the
+NMEA messages and extract your location before transmitting it via Iridium. You can install TinyGPS++ through the Arduino IDE Library Manager (search for _TinyGPS++_).
 
 The I2C example assumes you have a GNSS receiver connected via I2C. Good choices are the [SparkFun SAM-M8Q Breakout](https://www.sparkfun.com/products/15210) and the
 [SparkFun ZOE-M8Q Breakout](https://www.sparkfun.com/products/15193). The example uses the [SparkFun u-blox library](https://github.com/sparkfun/SparkFun_Ublox_Arduino_Library)
@@ -103,7 +103,3 @@ Please be aware that this does mean you will be charged for the message _twice_;
 This example demonstrates how to put the Qwiic Iridium into low power mode. With the 9603N, super capacitor charger and power LED disabled, the Qwiic Iridium will draw
 approximately 1 microamp when in low power mode. The ATtiny841 processor will wake up normally when it next sees activity on the I2C bus or the serial interface or
 receives an interrupt from the Ring Indicator signal.
-
-Enjoy!
-
-**_Paul_**

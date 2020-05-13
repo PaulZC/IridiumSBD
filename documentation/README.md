@@ -11,13 +11,13 @@ This library, **IridiumSBD**, uses Iridium's **SBD** ("Short Burst Data") protoc
 SBD is a "text message"-like technology that supports the transmission of text or binary messages up to a certain maximum size (270 bytes received, 340 bytes transmitted).
 
 Breakout boards for the 9602 and 9603N are available in different formats. Most of these breakouts use serial (UART) interfacing but I2C is possible too and this version of
-the library supports both. A full set of [examples](https://github.com/PaulZC/IridiumSBD/tree/master/examples) demonstrate how to use both interfaces.
+the library supports both. A full set of [examples](examples) demonstrate how to use both interfaces.
 
 ## Serial "3-wire" Interfacing
 
 Rock 7 have made interfacing the RockBLOCK to the Arduino quite simple.  Each RockBLOCK conveniently exposes many signal lines for the client device, but it's actually
 only necessary to connect 4 or 5 of these to get your application up and running. In our configuration we ignore the flow control lines and talk to the RockBLOCK over what
-Iridium calls a "3-wire" TTL serial interface.  In the wiring table below, we assume that the RockBLOCK is being powered from the Arduino 5V power bus. 
+Iridium calls a "3-wire" TTL serial interface.  In the wiring table below, we assume that the RockBLOCK is being powered from the Arduino 5V power bus.
 
 | RockBLOCK Connection | Arduino Connection |
 | --- | --- |
@@ -27,7 +27,7 @@ Iridium calls a "3-wire" TTL serial interface.  In the wiring table below, we as
 | RX | RX Serial Pin |
 | SLEEP (optional) | GPIO pin |
 | RING (optional) | GPIO pin |
- 
+
 The TX and RX lines are labeled on the RockBLOCK as viewed from the Arduino, so the TX line would be transmitting serial data _to_ the RockBLOCK.  These lines support
 TTL-level serial (default 19200 baud), so you can either connect it directly to a built-in UART or create a "soft" serial on any two suitable pins. We usually opt for the
 latter on smaller devices like Uno to free up the UART(s) for diagnostic and other console communications.
@@ -51,11 +51,11 @@ If the I2C address has been changed, you can use the new value when calling the 
 
 Access to the 9603N's Ring Indicator and Network Available pins is also done through the library.
 
-## Non-blocking Retry Strategy 
+## Non-blocking Retry Strategy
 
 The nature of satellite communications is such that it often takes quite a long time to establish a link.  Satellite communications are line-of-sight, so having a clear view
 of an unclouded sky greatly improves speed and reliability; however, establishing contact may be difficult even under ideal conditions for the simple reason that at a given time
-satellites are not always overhead. In these cases, the library initiates a behind-the-scenes series of retries, waiting for satellites to appear. 
+satellites are not always overhead. In these cases, the library initiates a behind-the-scenes series of retries, waiting for satellites to appear.
 
 With a clear sky, transmissions eventually almost always succeed, but the entire process may take up to several minutes. Since most microcontroller applications cannot tolerate
 blocking delays of this length, **IridiumSBD** provides a callback mechanism to ensure that the Arduino can continue performing critical tasks. Specifically, if the library user
@@ -68,7 +68,7 @@ bool ISBDCallback();
 (and this is recommended for all but the most trivial applications), then that function will be called repeatedly while the library is waiting for long operations to complete.
 In it you can take care of activities that need doing while you're waiting for the transmission to complete. As a simple example, this blinks an LED during the library operations:
 
-``` 
+```
 bool ISBDCallback()
 {
   unsigned ledOn = (millis() / 1000) % 2;
@@ -85,25 +85,25 @@ modem.sendSBDText("Hello, mother!");
 **Note:** Your application can prematurely terminate a pending IridiumSBD operation by returning **false** from the callback.  This causes the pending operation to immediately
 return **ISBD_CANCELLED**.
 
-## Power Considerations 
+## Power Considerations
 
 The RockBLOCK module uses a "super capacitor" to supply power to the Iridium 9602/9603.  As the capacitor is depleted through repeated transmission attempts, the host device's
 power bus replenishes it. Under certain low power conditions it is important that the library not retry too quickly, as this can drain the capacitor and render the device inoperative.
 In particular, when powered by a low-power 90 mA max USB supply, the interval between transmit retries should be extended to as much as 60 seconds, compared to 20 for, say, a high-current
 battery solution.
 
-To transparently support these varying power profiles, **IridiumSBD** provides the ability to fine-tune the delay between retries.  This is done by calling 
+To transparently support these varying power profiles, **IridiumSBD** provides the ability to fine-tune the delay between retries.  This is done by calling
 
 ```
-// For USB "low current" applications 
-modem.setPowerProfile(IridiumSBD::USB_POWER_PROFILE); 
+// For USB "low current" applications
+modem.setPowerProfile(IridiumSBD::USB_POWER_PROFILE);
 ```
 
-or 
+or
 
 ```
 // For "high current" (battery-powered) applications
-modem.setPowerProfile(IridiumSBD::DEFAULT_POWER_PROFILE); 
+modem.setPowerProfile(IridiumSBD::DEFAULT_POWER_PROFILE);
 ```
 
 ## Construction and Startup
@@ -123,13 +123,13 @@ Example startup:
 #include <IridiumSBD.h>
 #include <SoftwareSerial.h>
 
-SoftwareSerial ssIridium(18, 19); // RockBLOCK serial port on 18/19 
-IridiumSBD modem(ssIridium, 10);  // SLEEP pin on 10, RING pin not connected 
- 
-void setup() 
-{ 
-   modem.setPowerProfile(IridiumSBD::USB_POWER_PROFILE); 
-   modem.begin(); // Wake up the 9602 and prepare it for communications. 
+SoftwareSerial ssIridium(18, 19); // RockBLOCK serial port on 18/19
+IridiumSBD modem(ssIridium, 10);  // SLEEP pin on 10, RING pin not connected
+
+void setup()
+{
+   modem.setPowerProfile(IridiumSBD::USB_POWER_PROFILE);
+   modem.begin(); // Wake up the 9602 and prepare it for communications.
    ...
 ```
 
@@ -148,11 +148,11 @@ Example startup:
 #include <Wire.h>
 
 IridiumSBD modem(Wire);
- 
-void setup() 
-{ 
-   modem.setPowerProfile(IridiumSBD::USB_POWER_PROFILE); 
-   modem.begin(); // Wake up the 9603N and prepare it for communications. 
+
+void setup()
+{
+   modem.setPowerProfile(IridiumSBD::USB_POWER_PROFILE);
+   modem.begin(); // Wake up the 9603N and prepare it for communications.
    ...
 ```
 
@@ -169,7 +169,7 @@ int sendSBDText(const char *message);
 int sendSBDBinary(const uint8_t *txData, size_t txDataSize);
 
 // Send a text message and receive one (if available)
-int sendReceiveSBDText(const char *message, uint8_t *rxBuffer, size_t &rxBufferSize); 
+int sendReceiveSBDText(const char *message, uint8_t *rxBuffer, size_t &rxBufferSize);
 
 // Send a binary message and receive one (if available)
 int sendReceiveSBDBinary(const uint8_t *txData, size_t txDataSize, uint8_t *rxBuffer, size_t &rxBufferSize);
@@ -194,50 +194,50 @@ If no inbound message is available, the **sendReceive** messages indicate this b
 with the signature
 
 ```
-void ISBDConsoleCallback(IridiumSBD *device, char c); 
+void ISBDConsoleCallback(IridiumSBD *device, char c);
 ```
 
 the library will call it repeatedly with data in this conversation, and your application can log it. Similarly, to inspect the run state of the library as it is working, simply provide a
-callback like this: 
+callback like this:
 
 ```
-void ISBDDiagsCallback(IridiumSBD *device, char c); 
+void ISBDDiagsCallback(IridiumSBD *device, char c);
 ```
 
 These callbacks allow the host application to monitor Iridium traffic and the library's diagnostic messages. The typical usage is to simply forward both to the Arduino serial port
-for display in the serial monitor: 
+for display in the serial monitor:
 
 ```
 void ISBDConsoleCallback(IridiumSBD *device, char c)
-{ 
-  Serial.write(c); 
-} 
- 
-void ISBDDiagsCallback(IridiumSBD *device, char c) 
-{ 
-  Serial.write(c); 
-} 
+{
+  Serial.write(c);
+}
+
+void ISBDDiagsCallback(IridiumSBD *device, char c)
+{
+  Serial.write(c);
+}
 ```
 
 ## Receiving Multiple Messages
 
 After every successful SBD send/receive operation, the Iridium satellite system informs the client how many messages remain in the inbound message queue. The library reports this value
-with the **getWaitingMessageCount** method. Here's an example of a loop that reads all the messages in the inbound message queue: 
+with the **getWaitingMessageCount** method. Here's an example of a loop that reads all the messages in the inbound message queue:
 
 ```
-do 
-{ 
-   char rxBuffer[100]; 
-   size_t bufferSize = sizeof(rxBuffer); 
-   int status = modem.sendReceiveText(NULL, rxBuffer, bufferSize); 
-   if (status != ISBD_SUCCESS) 
-   { 
-      /* ...process error here... */ 
-      break; 
-   } 
-   if (bufferSize == 0) 
-      break; // all done! 
-   /* ...process message in rxBuffer here... */ 
+do
+{
+   char rxBuffer[100];
+   size_t bufferSize = sizeof(rxBuffer);
+   int status = modem.sendReceiveText(NULL, rxBuffer, bufferSize);
+   if (status != ISBD_SUCCESS)
+   {
+      /* ...process error here... */
+      break;
+   }
+   if (bufferSize == 0)
+      break; // all done!
+   /* ...process message in rxBuffer here... */
 } while (modem.getWaitingMessageCount() > 0);
 ```
 
@@ -282,7 +282,7 @@ allow you to parcel up your commands, send them to the transceiver via I2C, and 
 - **passThruI2Cread** allows you to read serial data directly from the 9603N without going through the higher level library methods.
 - **passThruI2Cwrite** allows you to write directly to the transceiver as if you were connected via serial.
 
-[Example 9](https://github.com/PaulZC/IridiumSBD/blob/master/examples/I2C_Examples__Qwiic_Iridium/Example9_PassThru/Example9_PassThru.ino) makes use of these methods.
+[Example 9](../examples/I2C_Examples__Qwiic_Iridium/Example9_PassThru/Example9_PassThru.ino) makes use of these methods.
 
 These methods will return a ISBD_REENTRANT error if you attempt to call them while another method is in progress.
 
@@ -295,9 +295,9 @@ than version TA13001: use **getFirmwareVersion()** to check yours. The library a
 AT-MSSTM before each transmission - by default for firmware that is older, but you can disable this check with:
 
 ```
-modem.useMSSTMWorkaround(false); 
+modem.useMSSTMWorkaround(false);
 ```
- 
+
 ## Error return codes
 
 Many **IridiumSBD** methods return an integer error status code, with ISBD_SUCCESS (0) indicating successful completion. These include **begin**, **sendSBDText**, **sendSBDBinary**,
@@ -319,23 +319,23 @@ Many **IridiumSBD** methods return an integer error status code, with ISBD_SUCCE
 #define ISBD_NO_NETWORK          12
 #define ISBD_MSG_TOO_LONG        13
 ```
-  
-## IridiumSBD Interface 
+
+## IridiumSBD Interface
 
 ---
 ### Constructor (Serial)
 ---
 ```
-IridiumSBD(Stream &stream, int sleepPinNo = -1, int ringPinNo = -1) 
+IridiumSBD(Stream &stream, int sleepPinNo = -1, int ringPinNo = -1)
 ```
 
-- Description: Creates an IridiumSBD library object 
-- Returns: N/A 
-- Parameter: **stream** - The serial port that the RockBLOCK is connected to. 
-- Parameter: **sleepPin** - The number of the Arduino pin connected to the RockBLOCK SLEEP line. 
- 
+- Description: Creates an IridiumSBD library object
+- Returns: N/A
+- Parameter: **stream** - The serial port that the RockBLOCK is connected to.
+- Parameter: **sleepPin** - The number of the Arduino pin connected to the RockBLOCK SLEEP line.
+
 Notes:
-- Connecting and using the sleepPin is recommended for battery-based solutions. Use **sleep()** to put the RockBLOCK into a low-power state, and **begin()** to wake it back up. 
+- Connecting and using the sleepPin is recommended for battery-based solutions. Use **sleep()** to put the RockBLOCK into a low-power state, and **begin()** to wake it back up.
 
 ---
 ### Constructor (I2C)
@@ -344,276 +344,276 @@ Notes:
 IridiumSBD(TwoWire &wirePort = Wire, uint8_t deviceAddress = 0x63)
 ```
 
-- Description: Creates an IridiumSBD library object 
-- Returns: N/A 
-- Parameter: **wirePort** - The I2C (Wire) port that the Qwiic Iridium is connected to. 
-- Parameter: **deviceAddress** - The address used by the ATtiny841 for I2C communication. 
+- Description: Creates an IridiumSBD library object
+- Returns: N/A
+- Parameter: **wirePort** - The I2C (Wire) port that the Qwiic Iridium is connected to.
+- Parameter: **deviceAddress** - The address used by the ATtiny841 for I2C communication.
 
 Notes:
-- Access to the sleepPin is provided internally through the library. 
+- Access to the sleepPin is provided internally through the library.
 
 ---
 ### Startup
 ---
 ```
-int begin() 
+int begin()
 ```
- 
-- Description: Starts (or wakes) the RockBLOCK modem. 
-- Returns:  ISBD_SUCCESS if successful, a non-zero code otherwise. 
-- Parameter: None. 
- 
+
+- Description: Starts (or wakes) the RockBLOCK modem.
+- Returns:  ISBD_SUCCESS if successful, a non-zero code otherwise.
+- Parameter: None.
+
 Notes:
-- **begin()** also serves as the way to wake a RockBLOCK that is asleep. 
-- At initial power up, this method make take several tens of seconds as the device charges.  When waking from sleep the process should be faster. 
-- If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
-- This function should be called before any transmit/receive operation 
+- **begin()** also serves as the way to wake a RockBLOCK that is asleep.
+- At initial power up, this method make take several tens of seconds as the device charges.  When waking from sleep the process should be faster.
+- If provided, the user's **ISBDCallback** function is repeatedly called during this operation.
+- This function should be called before any transmit/receive operation
 
 ---
-### Data transmission 
+### Data transmission
 ---
 ```
-int sendSBDText(const char *message) 
+int sendSBDText(const char *message)
 ```
- 
-- Description: Transmits a text message to the global satellite system. 
-- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise 
-- Parameter: **message** - A 0-terminated string message. 
- 
+
+- Description: Transmits a text message to the global satellite system.
+- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise
+- Parameter: **message** - A 0-terminated string message.
+
 Notes:
-- The library calculates retries the operation for up to 300 seconds by default. (To change this value, call **adjustSendReceiveTimeout**.) 
-- The maximum size of a transmitted packet (including header and checksum) is 340 bytes. 
-- If there are any messages in the RX queue, the first of these is discarded when this function is called. 
-- If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
+- The library calculates retries the operation for up to 300 seconds by default. (To change this value, call **adjustSendReceiveTimeout**.)
+- The maximum size of a transmitted packet (including header and checksum) is 340 bytes.
+- If there are any messages in the RX queue, the first of these is discarded when this function is called.
+- If provided, the user's **ISBDCallback** function is repeatedly called during this operation.
 
 ---
 ```
-int sendSBDBinary(const uint8_t *txData, size_t txDataSize) 
+int sendSBDBinary(const uint8_t *txData, size_t txDataSize)
 ```
- 
-- Description: Transmits a binary message to the global satellite system. 
-- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise 
-- Parameter: **txData** - The buffer containing the binary data to be transmitted. 
-- Parameter: **txDataSize** - The size of the buffer in bytes. 
- 
+
+- Description: Transmits a binary message to the global satellite system.
+- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise
+- Parameter: **txData** - The buffer containing the binary data to be transmitted.
+- Parameter: **txDataSize** - The size of the buffer in bytes.
+
 Notes:
 - The library calculates and transmits the required headers and checksums and retries the operation for up to 300 seconds by default. (To change this value, call **adjustSendReceiveTimeout**.)   
-- The maximum size of a transmitted packet (including header and checksum) is 340 bytes. 
-- If there are any messages in the RX queue, the first of these is discarded when this function is called. 
-- If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
+- The maximum size of a transmitted packet (including header and checksum) is 340 bytes.
+- If there are any messages in the RX queue, the first of these is discarded when this function is called.
+- If provided, the user's **ISBDCallback** function is repeatedly called during this operation.
 
 ---
 ```
-int sendReceiveSBDText(const char *message, uint8_t *rxBuffer, size_t &rxBufferSize) 
+int sendReceiveSBDText(const char *message, uint8_t *rxBuffer, size_t &rxBufferSize)
 ```
- 
-- Description: Transmits a text message to the global satellite system and receives a message if one is available. 
-- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise 
-- Parameter: **message** - A 0-terminated string message. 
-- Parameter: **rxBuffer** - The buffer to receive the inbound message. 
-- Parameter: **rxBufferSize** - The size of the buffer in bytes. 
- 
+
+- Description: Transmits a text message to the global satellite system and receives a message if one is available.
+- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise
+- Parameter: **message** - A 0-terminated string message.
+- Parameter: **rxBuffer** - The buffer to receive the inbound message.
+- Parameter: **rxBufferSize** - The size of the buffer in bytes.
+
 Notes:
-- The library calculates retries the operation for up to 300 seconds by default. (To change this value, call **adjustSendReceiveTimeout**.) 
-- The maximum size of a transmitted packet (including header and checksum) is 340 bytes. 
-- The maximum size of a received packet is 270 bytes. 
-- If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
-- The library returns the size of the buffer actually received into rxBufferSize. This value should always be set to the actual buffer size before calling sendReceiveSBDText. 
+- The library calculates retries the operation for up to 300 seconds by default. (To change this value, call **adjustSendReceiveTimeout**.)
+- The maximum size of a transmitted packet (including header and checksum) is 340 bytes.
+- The maximum size of a received packet is 270 bytes.
+- If provided, the user's **ISBDCallback** function is repeatedly called during this operation.
+- The library returns the size of the buffer actually received into rxBufferSize. This value should always be set to the actual buffer size before calling sendReceiveSBDText.
 
 ---
 ```
-int sendReceiveSBDBinary(const uint8_t *txData, size_t txDataSize, uint8_t *rxBuffer, size_t &rxBufferSize) 
+int sendReceiveSBDBinary(const uint8_t *txData, size_t txDataSize, uint8_t *rxBuffer, size_t &rxBufferSize)
 ```
- 
-- Description: Transmits a binary message to the global satellite system and receives a message if one is available. 
-- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise 
-- Parameter: **txData** - The buffer containing the binary data to be transmitted. 
-- Parameter: **txDataSize** - The size of the outbound buffer in bytes. 
-- Parameter: **rxBuffer** - The buffer to receive the inbound message. 
-- Parameter: **rxBufferSize** - The size of the buffer in bytes. 
- 
+
+- Description: Transmits a binary message to the global satellite system and receives a message if one is available.
+- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise
+- Parameter: **txData** - The buffer containing the binary data to be transmitted.
+- Parameter: **txDataSize** - The size of the outbound buffer in bytes.
+- Parameter: **rxBuffer** - The buffer to receive the inbound message.
+- Parameter: **rxBufferSize** - The size of the buffer in bytes.
+
 Notes:
-- The library calculates and transmits the required headers and checksums and retries the operation for up to 300 seconds by default. (To change this value, call **adjustSendReceiveTimeout**.) 
-- The maximum size of a transmitted packet (including header and checksum) is 340 bytes. 
-- The maximum size of a received packet is 270 bytes. 
-- If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
-- The library returns the size of the buffer actually received into rxBufferSize. This value should always be set to the actual buffer size before calling sendReceiveSBDText. 
+- The library calculates and transmits the required headers and checksums and retries the operation for up to 300 seconds by default. (To change this value, call **adjustSendReceiveTimeout**.)
+- The maximum size of a transmitted packet (including header and checksum) is 340 bytes.
+- The maximum size of a received packet is 270 bytes.
+- If provided, the user's **ISBDCallback** function is repeatedly called during this operation.
+- The library returns the size of the buffer actually received into rxBufferSize. This value should always be set to the actual buffer size before calling sendReceiveSBDText.
 
 ---
-### Utilities 
+### Utilities
 ---
 ```
-int getSignalQuality(int &quality) 
+int getSignalQuality(int &quality)
 ```
- 
-- Description: Queries the signal strength and visibility of satellites 
-- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise 
-- Parameter: **quality** - Return value: the strength of the signal (0=nonexistent, 5=high) 
- 
+
+- Description: Queries the signal strength and visibility of satellites
+- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise
+- Parameter: **quality** - Return value: the strength of the signal (0=nonexistent, 5=high)
+
 Notes:
-- If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
-- This method is mostly informational.  It is not strictly necessary for the user application to verify that a signal exists before calling one of the transmission functions, as these check signal quality themselves. 
+- If provided, the user's **ISBDCallback** function is repeatedly called during this operation.
+- This method is mostly informational.  It is not strictly necessary for the user application to verify that a signal exists before calling one of the transmission functions, as these check signal quality themselves.
 
 ---
 ```
-int getWaitingMessageCount() 
+int getWaitingMessageCount()
 ```
- 
-- Description: Returns the number of waiting messages on the Iridium servers. 
-- Returns: The number of messages waiting, or -1 if unknown. 
-- Parameter: None. 
- 
+
+- Description: Returns the number of waiting messages on the Iridium servers.
+- Returns: The number of messages waiting, or -1 if unknown.
+- Parameter: None.
+
 Notes:
-- This number is only valid if one of the send/receive methods has previously completed successfully. If not, the value returned from **getWaitingMessageCount** is -1 ("unknown"). 
+- This number is only valid if one of the send/receive methods has previously completed successfully. If not, the value returned from **getWaitingMessageCount** is -1 ("unknown").
 
 ---
 ```
-int getSystemTime(struct tm &tm) 
+int getSystemTime(struct tm &tm)
 ```
- 
-- Description: Returns the system time from the Iridium network. 
-- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise. 
-- Parameter: **tm** - the time structure to be filled in 
- 
+
+- Description: Returns the system time from the Iridium network.
+- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise.
+- Parameter: **tm** - the time structure to be filled in
+
 Notes:
-- This method returns the Iridium network time in tm. 
-- "tm" is a C standard library structure defined in <time.h> 
-- Note that the tm_mon field is zero-based, i.e. January is 0 
-- This function uses AT-MSSTM, which might report "Network not found". In this case, the function returns ISBD_NO_NETWORK. 
+- This method returns the Iridium network time in tm.
+- "tm" is a C standard library structure defined in <time.h>
+- Note that the tm_mon field is zero-based, i.e. January is 0
+- This function uses AT-MSSTM, which might report "Network not found". In this case, the function returns ISBD_NO_NETWORK.
 
 ---
 ```
-int sleep() 
+int sleep()
 ```
- 
-- Description: Puts the RockBLOCK into low power "sleep" mode 
-- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise 
-- Parameter: **None**. 
- 
+
+- Description: Puts the RockBLOCK into low power "sleep" mode
+- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise
+- Parameter: **None**.
+
 Notes:
-- This method gracefully shuts down the RockBLOCK and puts it into low-power standby mode by bringing the active low SLEEP line low. 
-- Wake the device by calling **begin()**. 
-- If provided, the user's **ISBDCallback** function is repeatedly called during this operation. 
+- This method gracefully shuts down the RockBLOCK and puts it into low-power standby mode by bringing the active low SLEEP line low.
+- Wake the device by calling **begin()**.
+- If provided, the user's **ISBDCallback** function is repeatedly called during this operation.
 
 ---
 ```
-bool isAsleep() 
+bool isAsleep()
 ```
- 
-- Description: indicates whether the RockBLOCK is in low-power standby mode. 
-- Returns: **true** if the device is asleep 
-- Parameter: **None**. 
+
+- Description: indicates whether the RockBLOCK is in low-power standby mode.
+- Returns: **true** if the device is asleep
+- Parameter: **None**.
 
 ---
 ```
-bool hasRingAsserted() 
+bool hasRingAsserted()
 ```
- 
+
 - Description: indicates whether the RockBLOCK's RING line has asserted  
-- Returns: **true** if RING has asserted 
-- Parameter: **None**. 
+- Returns: **true** if RING has asserted
+- Parameter: **None**.
 
 ---
 ```
-int getFirmwareVersion(char *version, size_t bufferSize) 
+int getFirmwareVersion(char *version, size_t bufferSize)
 ```
 
-- Description: Returns a string representing the firmware revision number. 
-- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise. 
-- Parameter: **version** - the buffer to contain the version string 
-- Parameter: **bufferSize** - the size of the buffer to be filled 
- 
+- Description: Returns a string representing the firmware revision number.
+- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise.
+- Parameter: **version** - the buffer to contain the version string
+- Parameter: **bufferSize** - the size of the buffer to be filled
+
 Notes:
-- This method returns the version string in the version buffer. 
-- bufferSize should be at least 8 to contain strings like TA13001 with the 0 terminator. 
+- This method returns the version string in the version buffer.
+- bufferSize should be at least 8 to contain strings like TA13001 with the 0 terminator.
 
 ---
 ```
-void setPowerProfile(POWERPROFILE profile) 
+void setPowerProfile(POWERPROFILE profile)
 ```
- 
-- Description: Defines the device power profile 
-- Returns: **None**. 
-- Parameter: **profile** - USB_POWER_PROFILE for low-current USB power source, DEFAULT_POWER_PROFILE for default (battery) power 
- 
+
+- Description: Defines the device power profile
+- Returns: **None**.
+- Parameter: **profile** - USB_POWER_PROFILE for low-current USB power source, DEFAULT_POWER_PROFILE for default (battery) power
+
 Notes:
-- This method defines the internal delays between retransmission.  Low current applications may require longer delays. 
+- This method defines the internal delays between retransmission.  Low current applications may require longer delays.
 
 ---
 ```
-void adjustATTimeout(int seconds) 
+void adjustATTimeout(int seconds)
 ```
- 
-- Description: Adjusts the internal timeout timer for serial AT commands 
-- Returns: **None**. 
-- Parameter: **seconds** - The maximum number of seconds to wait for a response to an AT command (default=20). 
- 
+
+- Description: Adjusts the internal timeout timer for serial AT commands
+- Returns: **None**.
+- Parameter: **seconds** - The maximum number of seconds to wait for a response to an AT command (default=20).
+
 Notes:
-- The Iridium 9602 frequently does not respond immediately to an AT command.  This value indicates the number of seconds IridiumSBD should wait before giving up. 
-- It is not expected that this method will be commonly used. 
+- The Iridium 9602 frequently does not respond immediately to an AT command.  This value indicates the number of seconds IridiumSBD should wait before giving up.
+- It is not expected that this method will be commonly used.
 
 ---
 ```
-void adjustSendReceiveTimeout(int seconds) 
+void adjustSendReceiveTimeout(int seconds)
 ```
- 
-- Description: Adjusts the internal timeout timer for the library send/receive commands 
-- Returns: **None**. 
-- Parameter: **seconds** - The maximum number of seconds to continue attempting retransmission of messages (default=300). 
- 
+
+- Description: Adjusts the internal timeout timer for the library send/receive commands
+- Returns: **None**.
+- Parameter: **seconds** - The maximum number of seconds to continue attempting retransmission of messages (default=300).
+
 Notes:
 - This setting indicates how long IridiumSBD will continue to attempt to communicate with the satellite array before giving up. The default value of 300 seconds (5 minutes)
-seems to be a reasonable choice for many applications, but higher values might be more appropriate for others. 
+seems to be a reasonable choice for many applications, but higher values might be more appropriate for others.
 
 ---
 ```
-void useMSSTMWorkaround(bool useWorkaround) 
+void useMSSTMWorkaround(bool useWorkaround)
 ```
- 
-- Description: Defines whether the library should use the technique described in the Iridium Product Advisor of 13 May 2013 to avoid possible lockout. 
-- Returns: **None**. 
-- Parameter: **useWorkaround** - "true" if the workaround should be employed; false otherwise. This value is set internally to "true" by default, on the assumption that the attached device may have an older firmware. 
- 
+
+- Description: Defines whether the library should use the technique described in the Iridium Product Advisor of 13 May 2013 to avoid possible lockout.
+- Returns: **None**.
+- Parameter: **useWorkaround** - "true" if the workaround should be employed; false otherwise. This value is set internally to "true" by default, on the assumption that the attached device may have an older firmware.
+
 Notes:
-- Affected firmware versions include TA11002 and TA12003. If your firmware version is later than these, you can save some time by setting this value to false. 
+- Affected firmware versions include TA11002 and TA12003. If your firmware version is later than these, you can save some time by setting this value to false.
 
 ---
 ```
-void enableRingAlerts(bool enable) 
+void enableRingAlerts(bool enable)
 ```
- 
-- Description: Overrides whether the library should enable the RING alert signal pin and the unsolicited SBDRING notification. 
-- Returns: **None**. 
-- Parameter: **enable** - "true" if RING alerts should be enabled. 
- 
+
+- Description: Overrides whether the library should enable the RING alert signal pin and the unsolicited SBDRING notification.
+- Returns: **None**.
+- Parameter: **enable** - "true" if RING alerts should be enabled.
+
 Notes:
-- This method uses the Iridium AT+SBDMTA to enable or disable alerts. 
+- This method uses the Iridium AT+SBDMTA to enable or disable alerts.
 - This method take effect at the next call to **begin()**, so typically you would call this before you start your device.  
-- RING alerts are enabled by default if the library user has specified a RING pin for the IridiumSBD constructor.  Otherwise they are disabled by default.  Use this method to override that as needed. 
+- RING alerts are enabled by default if the library user has specified a RING pin for the IridiumSBD constructor.  Otherwise they are disabled by default.  Use this method to override that as needed.
 
 ---
 ```
 int getIMEI(char *IMEI, size_t bufferSize)
 ```
 
-- Description: Returns a string representing the IMEI. 
-- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise. 
+- Description: Returns a string representing the IMEI.
+- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise.
 - Parameter: **IMEI** - the buffer to contain the IMEI string.
 - Parameter: **bufferSize** - the size of the buffer to be filled.
- 
+
 Notes:
-- This method returns the IMEI string in the IMEI buffer. 
-- bufferSize should be at least 16 to contain the 15 digit IMEI with the 0 terminator. 
+- This method returns the IMEI string in the IMEI buffer.
+- bufferSize should be at least 16 to contain the 15 digit IMEI with the 0 terminator.
 
 ---
 ```
 int clearBuffers(int buffers = ISBD_CLEAR_MO)
 ```
 
-- Description: Clears the Mobile Originated (MO), Mobile Terminated (MT) or Both message buffers. 
-- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise. 
+- Description: Clears the Mobile Originated (MO), Mobile Terminated (MT) or Both message buffers.
+- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise.
 - Parameter: **buffers** - the buffer(s) to be cleared.
- 
+
 Notes:
 - Defaults to clearing the MO buffer (**ISBD_CLEAR_MO**).
 - **buffers** can also be set to: **ISBD_CLEAR_MT** to clear the MT buffer; or **ISBD_CLEAR_BOTH** to clear both MO and MT buffers.
@@ -737,8 +737,8 @@ int passThruI2Cwrite(uint8_t *txBuffer, size_t &txBufferSize)
 ```
 
 - Description: Passes the binary data in **txBuffer** directly to the 9603N's serial pin without going through the higher level library methods.
-- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise. 
-- Parameter: **txBuffer** - The buffer containing the binary data to be transmitted. 
+- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise.
+- Parameter: **txBuffer** - The buffer containing the binary data to be transmitted.
 - Parameter: **txBufferSize** - The size (length) of the _binary data_ in bytes (not the size of the buffer itself).
 
 Notes:
@@ -750,9 +750,9 @@ int passThruI2Cread(uint8_t *rxBuffer, size_t &rxBufferSize, size_t &numBytes)
 ```
 
 - Description: Passes the binary data from the 9603N's serial pin directly to the user, via **rxBuffer**, without going through the higher level library methods.
-- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise. 
-- Parameter: **rxBuffer** - The buffer to receive the serial data from the 9603N. 
-- Parameter: **rxBufferSize** - The size (length) of the _buffer_ in bytes. 
+- Returns: ISBD_SUCCESS if successful, a non-zero code otherwise.
+- Parameter: **rxBuffer** - The buffer to receive the serial data from the 9603N.
+- Parameter: **rxBufferSize** - The size (length) of the _buffer_ in bytes.
 - Parameter: **numBytes** - The number of bytes returned in the buffer (>= 0, <= rxBufferSize).
 
 Notes:
@@ -763,55 +763,55 @@ Notes:
 ### Callbacks (optional)
 ---
 ```
-bool ISBDCallback() 
+bool ISBDCallback()
 ```
- 
-- Description: An optional user-supplied callback to help provide the appearance of responsiveness during lengthy Iridium operations 
-- Returns: **true** if the calling library operation should continue, **false** to terminate it. 
-- Parameter: **None**. 
- 
+
+- Description: An optional user-supplied callback to help provide the appearance of responsiveness during lengthy Iridium operations
+- Returns: **true** if the calling library operation should continue, **false** to terminate it.
+- Parameter: **None**.
+
 Notes:
-- If this function is not provided the library methods will appear to block. 
-- This is not a library method, but an optional user-provided callback function. 
+- If this function is not provided the library methods will appear to block.
+- This is not a library method, but an optional user-provided callback function.
 
 ---
 ```
-void ISBDConsoleCallback(IridiumSBD *device, char c) 
+void ISBDConsoleCallback(IridiumSBD *device, char c)
 ```
- 
+
 - Description: An optional user-supplied callback to sniff the conversation with the Iridium 9602/3.  
 - Returns: **None**.
-- Parameter: **device** - a handle to the modem device 
-- Parameter: **c** - a character in the conversation 
- 
+- Parameter: **device** - a handle to the modem device
+- Parameter: **c** - a character in the conversation
+
 Notes:
-- Typical usage is to write c to a console for diagnostics. 
-- This is not a library method, but an optional user-provided callback function. 
+- Typical usage is to write c to a console for diagnostics.
+- This is not a library method, but an optional user-provided callback function.
 
 ---
 ```
-void ISBDDiagsCallback(IridiumSBD *device, char c) 
+void ISBDDiagsCallback(IridiumSBD *device, char c)
 ```
- 
-- Description: An optional user-supplied callback to monitor the library's run state. 
+
+- Description: An optional user-supplied callback to monitor the library's run state.
 - Returns: **None**.
-- Parameter: **device** - a handle to the modem device 
-- Parameter: **c** - a character in the run log 
- 
+- Parameter: **device** - a handle to the modem device
+- Parameter: **c** - a character in the run log
+
 Notes:
-- Typical usage is to write **c** to a console for diagnostics 
-- This is not a library method, but an optional user-provided callback function. 
+- Typical usage is to write **c** to a console for diagnostics
+- This is not a library method, but an optional user-provided callback function.
 ---
 
-## License 
+## License
 
 This library is distributed under the terms of the GNU LGPL license.  
 
-## Document revision history 
+## Document revision history
 
 | Version | Date | Author | Reason |
 | --- | --- | --- | --- |
 | 1.0 | 2013 | Mikal Hart | Initial draft submitted to Rock 7 for review |
-| 1.1 | 2014 | Mikal Hart | Added text about the AT-MSSTM erratum/workaround and changing the minimum required signal quality. Also documented related new methods **setMinimumSignalQuality** and **useMSSTMWorkaround()**. | 
+| 1.1 | 2014 | Mikal Hart | Added text about the AT-MSSTM erratum/workaround and changing the minimum required signal quality. Also documented related new methods **setMinimumSignalQuality** and **useMSSTMWorkaround()**. |
 | 2.0 | 21 October 2017 | Mikal Hart | Several API revisions. Removed **setMinimumSignalQuality** (no longer used), added support for RING monitoring (**enableRingAlerts** method, and new RING alert pin on constructor), and changed the way diagnostics are done by replacing the **attachConsole** and **attachDiags** methods with user-supplied callbacks **ISBDConsoleCallback** and **ISBDDiagsCallback**. Added getSystemTime and getFirmwareVersion utility functions.  Add explanation that MSSTM workaround is no longer enabled by default if firmware is sufficiently new (TA13001 or newer). |
 | 3.0 | October 2019 | Paul Clark | Added I2C support for the Qwiic Iridium. Restructured the examples. Converted Mikal's documentation to markdown format. Added the feature requests (**getIMEI** and **clearBuffers**) and corrected the issues identified with version 2.0. Included a fix to let the serial Ring example work properly (**hasRingAsserted** now checks the ringPin itself instead of assuming **cancelled** will be able to do it). |
