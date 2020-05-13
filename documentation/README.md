@@ -11,7 +11,7 @@ This library, **IridiumSBD**, uses Iridium's **SBD** ("Short Burst Data") protoc
 SBD is a "text message"-like technology that supports the transmission of text or binary messages up to a certain maximum size (270 bytes received, 340 bytes transmitted).
 
 Breakout boards for the 9602 and 9603N are available in different formats. Most of these breakouts use serial (UART) interfacing but I2C is possible too and this version of
-the library supports both. A full set of [examples](examples) demonstrate how to use both interfaces.
+the library supports both. A full set of [examples](../examples) demonstrate how to use both interfaces.
 
 ## Serial "3-wire" Interfacing
 
