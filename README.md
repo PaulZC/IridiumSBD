@@ -26,7 +26,7 @@ Grateful thanks go to:
 
 ## Documentation
 
-You can find documentation for the library in the [documentation folder](https://github.com/PaulZC/IridiumSBD/tree/master/documentation)
+You can find documentation for the library in the [documentation folder](documentation)
 
 ## Products That Use This Library
 
@@ -41,7 +41,7 @@ You can find documentation for the library in the [documentation folder](https:/
 [Versions 1 and 2](https://github.com/mikalhart/IridiumSBD) of this library were written by Mikal Hart with generous support from [Rock 7 Mobile](http://rock7mobile.com).
 
 This version is based on Version 2.0 of IridiumSBD but has been modified to provide I2C support for the Qwiic Iridium 9603N. Serial will still work too of course.
-New [examples](https://github.com/PaulZC/IridiumSBD/tree/master/examples) demonstrate how to use the I2C interface. The serial examples have also been restructured and enhanced.
+New [examples](examples) demonstrate how to use the I2C interface. The serial examples have also been restructured and enhanced.
 
 This version of the library contains a new function called _clearBuffers_ which can be used to clear the Mobile Originated or Mobile Terminated message buffers.
 This allows you to overcome the 'feature' (bug?) where the 9603N will automatically re-transmit the last MO message when checking for new MT messages.
@@ -61,8 +61,4 @@ Also includes a fix to let the serial Ring example work properly.
 ## License
 
 Like versions 1 and 2 of Mikal's library, this version is also distributed under a
-[GNU Lesser General Public Licence v2.1](https://github.com/PaulZC/IridiumSBD/blob/master/LICENSE.md).
-
-Enjoy!
-
-**_Paul_**
+[GNU Lesser General Public Licence v2.1](LICENSE.md).
